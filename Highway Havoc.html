@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Highway Havoc</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #mobileControls {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            z-index: 100;
+        }
+        .mobileBtn {
+            background-color: rgba(0, 255, 255, 0.3);
+            border: 2px solid rgba(0, 255, 255, 0.8);
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 24px;
+            touch-action: manipulation;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            position: relative;
+        }
+        .mobileBtn:active, .mobileBtn:hover {
+            background-color: rgba(0, 255, 255, 0.6);
+            transform: scale(1.1);
+        }
+        #gameButtons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .achievement {
+            position: fixed;
+            right: -300px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid rgba(0, 255, 255, 0.8);
+            color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            transition: right 0.5s ease;
+            z-index: 1000;
+        }
+        .rulesPopup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 20, 40, 0.95);
+            border: 3px solid rgba(0, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        .rulesTitle {
+            color: #00ffff;
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        .rulesList {
+            color: #fff;
+            font-size: 1.2em;
+            line-height: 1.6;
+        }
+        .ruleItem {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 3px solid #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .ruleItem:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        .startButton {
+            display: block;
+            margin: 30px auto 0;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .startButton:hover {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="mobileControls">
+        <button class="mobileBtn" id="leftBtn">←</button>
+        <button class="mobileBtn" id="rightBtn">→</button>
+    </div>
+    <div id="gameButtons">
+        <button class="mobileBtn" id="startBtn">Start</button>
+        <button class="mobileBtn" id="restartBtn" style="display: none;">Restart</button>
+    </div>
+    <script>
+        let player;
+        let cars = [];
+        let gameState = "rules";
+        let score = 0;
+        let lives = 3;
+        let checkpoint = 0;
+        let lastCheckpointTime = 0;
+        let carSpeed = 2;
+        let spawnRate = 0.02;
+        let flashAlpha = 0;
+        let canvasRatio = 2/3;
+        let highScore = localStorage.getItem('highScore') || 0;
+        let achievements = [];
+        let combo = 0;
+        let maxCombo = 0;
+        let ruleIndex = 0;
+        let ruleTimer = 0;
+        
+        // Achievement system
+        const ACHIEVEMENTS = [
+            { id: 'first_dodge', title: 'Quick Reflexes', desc: 'Dodge your first car', unlocked: false },
+            { id: 'combo_5', title: 'Combo Master', desc: 'Get a 5x combo', unlocked: false },
+            { id: 'score_100', title: 'Century', desc: 'Score 100 points', unlocked: false },
+            { id: 'level_5', title: 'Survivor', desc: 'Reach Level 5', unlocked: false },
+            { id: 'perfect_level', title: 'Perfect Run', desc: 'Complete a level without getting hit', unlocked: false }
+        ];
+
+        const RULES = [
+            "Welcome to Highway Havoc!",
+            "Dodge oncoming traffic and survive!",
+            "Use ← → arrows or buttons to change lanes",
+            "Red cars are dangerous - they come towards you!",
+            "Blue cars go in your direction - less points but safer",
+            "Build combos by dodging consecutive cars",
+            "Reach higher levels for greater challenges",
+            "Unlock achievements to prove your skill!",
+            "Ready to become a Highway Legend?",
+            "Press START when ready!"
+        ];
+
+        function setup() {
+            let canvasWidth, canvasHeight;
+            if (windowWidth / windowHeight > canvasRatio) {
+                canvasHeight = windowHeight * 0.9;
+                canvasWidth = canvasHeight * canvasRatio;
+            } else {
+                canvasWidth = windowWidth * 0.9;
+                canvasHeight = canvasWidth / canvasRatio;
+            }
+            let canvas = createCanvas(canvasWidth, canvasHeight);
+            canvas.parent(document.body);
+            
+            player = new Player();
+            
+            // Setup controls with proper event handling
+            const leftBtn = document.getElementById('leftBtn');
+            const rightBtn = document.getElementById('rightBtn');
+            const startBtn = document.getElementById('startBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            
+            leftBtn.addEventListener('touchstart', handleLeft);
+            leftBtn.addEventListener('mousedown', handleLeft);
+            rightBtn.addEventListener('touchstart', handleRight);
+            rightBtn.addEventListener('mousedown', handleRight);
+            startBtn.addEventListener('click', startGame);
+            restartBtn.addEventListener('click', resetGame);
+            
+            // Ensure buttons are visible
+            startBtn.style.display = 'block';
+            restartBtn.style.display = 'none';
+            
+            // Load achievements from localStorage
+            loadAchievements();
+        }
+
+        function windowResized() {
+            let canvasWidth, canvasHeight;
+            if (windowWidth / windowHeight > canvasRatio) {
+                canvasHeight = windowHeight * 0.9;
+                canvasWidth = canvasHeight * canvasRatio;
+            } else {
+                canvasWidth = windowWidth * 0.9;
+                canvasHeight = canvasWidth / canvasRatio;
+            }
+            resizeCanvas(canvasWidth, canvasHeight);
+        }
+
+        function handleLeft(e) {
+            e.preventDefault();
+            if (gameState === "playing" && player.targetLane > 0) {
+                player.targetLane--;
+            }
+        }
+
+        function handleRight(e) {
+            e.preventDefault();
+            if (gameState === "playing" && player.targetLane < 5) {
+                player.targetLane++;
+            }
+        }
+
+        function startGame() {
+            // Remove rules popup
+            const popup = document.getElementById('rulesPopup');
+            if (popup) {
+                popup.remove();
+            }
+            
+            gameState = "playing";
+            const startBtn = document.getElementById('startBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            startBtn.style.display = 'none';
+            restartBtn.style.display = 'block';
+            resetGame();
+        }
+
+        function showAchievement(achievement) {
+            const elem = document.createElement('div');
+            elem.className = 'achievement';
+            elem.innerHTML = `🏆 ${achievement.title}<br>${achievement.desc}`;
+            elem.style.top = `${achievements.length * 100 + 20}px`;
+            document.body.appendChild(elem);
+            
+            setTimeout(() => elem.style.right = '20px', 100);
+            setTimeout(() => {
+                elem.style.right = '-300px';
+                setTimeout(() => elem.remove(), 500);
+            }, 3000);
+            
+            achievements.push(achievement.id);
+            localStorage.setItem('achievements', JSON.stringify(achievements));
+        }
+
+        function loadAchievements() {
+            const saved = localStorage.getItem('achievements');
+            if (saved) {
+                achievements = JSON.parse(saved);
+            }
+        }
+
+        function checkAchievements() {
+            ACHIEVEMENTS.forEach(achievement => {
+                if (!achievements.includes(achievement.id)) {
+                    if (
+                        (achievement.id === 'first_dodge' && score > 0) ||
+                        (achievement.id === 'combo_5' && combo >= 5) ||
+                        (achievement.id === 'score_100' && score >= 100) ||
+                        (achievement.id === 'level_5' && checkpoint >= 4) ||
+                        (achievement.id === 'perfect_level' && checkpoint > 0 && lives === 3)
+                    ) {
+                        showAchievement(achievement);
+                    }
+                }
+            });
+        }
+
+        function draw() {
+            background(0, 20, 40);
+            
+            if (gameState === "rules") {
+                drawRules();
+            } else if (gameState === "menu") {
+                drawMenu();
+            } else if (gameState === "playing") {
+                playGame();
+            } else if (gameState === "gameover") {
+                drawGameOver();
+            }
+            
+            if (flashAlpha > 0) {
+                fill(255, 0, 0, flashAlpha);
+                rect(0, 0, width, height);
+                flashAlpha -= 5;
+            }
+        }
+
+        function drawRules() {
+            // Create rules popup if it doesn't exist
+            if (!document.getElementById('rulesPopup')) {
+                const popup = document.createElement('div');
+                popup.id = 'rulesPopup';
+                popup.className = 'rulesPopup';
+                popup.innerHTML = `
+                    <div class="rulesTitle">Welcome to Highway Havoc!</div>
+                    <div class="rulesList">
+                        <div class="ruleItem">🚗 Dodge oncoming traffic and survive!</div>
+                        <div class="ruleItem">🎮 Use ← → arrows or buttons to change lanes</div>
+                        <div class="ruleItem">⚠️ Red cars are dangerous - they come towards you!</div>
+                        <div class="ruleItem">🔵 Blue cars go in your direction - less points but safer</div>
+                        <div class="ruleItem">🔥 Build combos by dodging consecutive cars</div>
+                        <div class="ruleItem">📈 Reach higher levels for greater challenges</div>
+                        <div class="ruleItem">🏆 Unlock achievements to prove your skill!</div>
+                        <div class="ruleItem">💫 Ready to become a Highway Legend?</div>
+                    </div>
+                    <button class="startButton" onclick="startGame()">START GAME</button>
+                `;
+                document.body.appendChild(popup);
+            }
+        }
+
+        function drawMenu() {
+            fill(0, 255, 255); // Cyan color for TRON theme
+            textSize(width * 0.08);
+            textAlign(CENTER);
+            text("Highway Havoc", width/2, height/3);
+            textSize(width * 0.05);
+            text("Press 'S' to Start", width/2, height/2);
+            textSize(width * 0.03);
+            text("Use ← → arrows or buttons to move", width/2, height/2 + height * 0.1);
+        }
+
+        function playGame() {
+            // Draw vertical lanes with different colors
+            for (let i = 0; i < 6; i++) {
+                // Different colors for opposing traffic lanes
+                if (i < 3) {
+                    fill(0, 50, 100, 30); // Darker blue for oncoming traffic
+                } else {
+                    fill(0, 100, 150, 30); // Lighter blue for same direction
+                }
+                noStroke();
+                rect(i * width/6, 0, width/6, height);
+                
+                // Lane dividers
+                stroke(0, 150, 255, 100);
+                line((i+1) * width/6, 0, (i+1) * width/6, height);
+            }
+            
+            // Update and display player
+            player.update();
+            player.show();
+            
+            // Spawn cars
+            if (random() < spawnRate) {
+                cars.push(new Car(floor(random(6))));
+            }
+            
+            // Update and display cars
+            for (let i = cars.length - 1; i >= 0; i--) {
+                cars[i].update();
+                cars[i].show();
+                
+                // Collision detection
+                if (cars[i].hits(player)) {
+                    lives--;
+                    combo = 0;
+                    cars.splice(i, 1);
+                    flashAlpha = 100; // Start flash effect
+                    if (lives <= 0) {
+                        gameState = "gameover";
+                    }
+                    continue;
+                }
+                
+                // Score points
+                if (!cars[i].scored && cars[i].y > height/2 && cars[i].lane === player.lane) {
+                    combo++;
+                    maxCombo = Math.max(maxCombo, combo);
+                    let comboPoints = (cars[i].direction === 1) ? 10 : 20;
+                    comboPoints *= (1 + combo * 0.1); // 10% bonus per combo
+                    score += Math.floor(comboPoints);
+                    cars[i].scored = true;
+                    
+                    // Show combo popup
+                    if (combo > 1) {
+                        const elem = document.createElement('div');
+                        elem.className = 'achievement';
+                        elem.innerHTML = `${combo}x COMBO!`;
+                        elem.style.top = '50%';
+                        elem.style.right = '50%';
+                        document.body.appendChild(elem);
+                        setTimeout(() => elem.remove(), 1000);
+                    }
+                }
+                
+                // Remove cars off screen
+                if (cars[i].offscreen()) {
+                    cars.splice(i, 1);
+                }
+            }
+            
+            // Progressive difficulty
+            if (millis() - lastCheckpointTime > 10000) {
+                carSpeed *= 1.1;
+                spawnRate *= 1.1;
+                lastCheckpointTime = millis();
+            }
+            
+            // UI
+            fill(0, 255, 255); // Cyan color for TRON theme
+            textSize(width * 0.04);
+            text(`Score: ${score}`, width * 0.1, height * 0.05);
+            
+            // Heart symbols for lives
+            textSize(width * 0.05);
+            for (let i = 0; i < lives; i++) {
+                text("♥", width * 0.1 + i * width * 0.05, height * 0.1);
+            }
+            
+            // High Score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+            }
+            textSize(width * 0.04);
+            text(`High Score: ${highScore}`, width * 0.1, height * 0.15);
+            
+            // Progress bar (now shows difficulty progression)
+            noFill();
+            stroke(0, 255, 255);
+            rect(width * 0.3, height * 0.02, width * 0.4, height * 0.02);
+            fill(0, 255, 255, 100);
+            rect(width * 0.3, height * 0.02, map(millis() - lastCheckpointTime, 0, 10000, 0, width * 0.4), height * 0.02);
+        }
+
+        function drawGameOver() {
+            fill(0, 255, 255); // Cyan color for TRON theme
+            textSize(width * 0.08);
+            textAlign(CENTER);
+            text("Game Over", width/2, height/3);
+            textSize(width * 0.05);
+            text(`Final Score: ${score}`, width/2, height/2);
+            text(`High Score: ${highScore}`, width/2, height/2 + height * 0.1);
+            text("Press 'R' to Restart", width/2, height/2 + height * 0.2);
+        }
+
+        class Player {
+            constructor() {
+                this.lane = 2;
+                this.x = width/2;
+                this.width = width * 0.07;
+                this.height = height * 0.03;
+                this.targetLane = 2;
+                this.glowSize = 0;
+                this.glowDir = 1;
+            }
+            
+            update() {
+                // Smooth movement to target lane
+                let targetX = this.targetLane * width/6 + width/12;
+                this.x = lerp(this.x, targetX, 0.2);
+                this.lane = this.targetLane;
+                
+                // Pulsating glow effect
+                this.glowSize += 0.2 * this.glowDir;
+                if (this.glowSize > 20) this.glowDir = -1;
+                if (this.glowSize < 5) this.glowDir = 1;
+            }
+            
+            show() {
+                // Draw glow effect
+                for (let i = 5; i > 0; i--) {
+                    noStroke();
+                    fill(255, 255, 0, 150 / i); // Yellow radioactive glow
+                    ellipse(this.x, height/2 + this.height/2, 
+                            this.width + this.glowSize * i, 
+                            this.height + this.glowSize * i);
+                }
+                
+                // Draw player car
+                fill(255, 255, 0); // Bright yellow for player
+                stroke(255, 255, 255);
+                strokeWeight(2);
+                rect(this.x - this.width/2, height/2, this.width, this.height, 5);
+                
+                // Car details
+                fill(200, 200, 0);
+                rect(this.x - this.width/4, height/2, this.width/2, this.height/3, 2);
+                
+                // Headlights
+                fill(255, 255, 200);
+                ellipse(this.x - this.width/3, height/2 + this.height * 0.8, this.width/6, this.height/4);
+                ellipse(this.x + this.width/3, height/2 + this.height * 0.8, this.width/6, this.height/4);
+                
+                strokeWeight(1); // Reset stroke weight
+            }
+        }
+
+        class Car {
+            constructor(lane) {
+                this.lane = lane;
+                this.width = width * 0.07;
+                this.height = height * 0.03;
+                this.direction = (lane < 3) ? -1 : 1;
+                this.x = this.lane * width/6 + width/12;
+                this.y = (this.direction === 1) ? -this.height : height;
+                this.scored = false;
+                
+                // TRON-themed colors based on direction
+                if (this.direction === 1) { // Same direction as player
+                    this.color = color(0, 150, 255); // Blue
+                    this.detailColor = color(100, 200, 255);
+                } else { // Opposing direction
+                    this.color = color(255, 50, 100); // Red-pink
+                    this.detailColor = color(255, 100, 150);
+                }
+            }
+            
+            update() {
+                this.y += carSpeed * this.direction;
+            }
+            
+            show() {
+                // Main car body
+                fill(this.color);
+                stroke(255, 255, 255);
+                strokeWeight(2);
+                rect(this.x - this.width/2, this.y, this.width, this.height, 5);
+                
+                // Car details
+                fill(this.detailColor);
+                rect(this.x - this.width/4, this.y + (this.direction === 1 ? 0 : this.height * 2/3), 
+                     this.width/2, this.height/3, 2);
+                
+                // Headlights/taillights
+                if (this.direction === 1) {
+                    // Taillights for cars going same direction as player
+                    fill(255, 50, 50);
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
+                } else {
+                    // Headlights for oncoming cars
+                    fill(255, 255, 200);
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
+                }
+                
+                strokeWeight(1); // Reset stroke weight
+            }
+            
+            hits(player) {
+                return (this.lane === player.lane && 
+                        this.y + this.height > height/2 && 
+                        this.y < height/2 + player.height);
+            }
+            
+            offscreen() {
+                return (this.y > height || this.y + this.height < 0);
+            }
+        }
+
+        function keyPressed() {
+            if (key === 's' && (gameState === "menu" || gameState === "rules")) {
+                startGame();
+            }
+            if (key === 'r' && gameState === "gameover") {
+                resetGame();
+            }
+            
+            if (gameState === "playing") {
+                if (keyCode === LEFT_ARROW && player.targetLane > 0) {
+                    player.targetLane--;
+                }
+                if (keyCode === RIGHT_ARROW && player.targetLane < 5) {
+                    player.targetLane++;
+                }
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            checkpoint = 0;
+            lastCheckpointTime = millis();
+            carSpeed = 2;
+            spawnRate = 0.02;
+            cars = [];
+            player = new Player();
+            gameState = "playing";
+            combo = 0;
+            maxCombo = 0;
+            
+            // Update button visibility
+            const startBtn = document.getElementById('startBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            startBtn.style.display = 'none';
+            restartBtn.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
