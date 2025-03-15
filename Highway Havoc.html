@@ -71,25 +71,99 @@
             background: rgba(0, 20, 40, 0.95);
             border: 3px solid rgba(0, 255, 255, 0.8);
             border-radius: 15px;
-            padding: 30px;
-            width: 80%;
-            max-width: 600px;
-            max-height: 80vh;
+            padding: 20px;
+            width: 40%;
+            max-width: 300px;
+            height: 60vh;
+            max-height: 450px;
             overflow-y: auto;
             z-index: 1000;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+                        inset 0 0 50px rgba(0, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
         }
         .rulesTitle {
             color: #00ffff;
             text-align: center;
-            font-size: 2em;
+            font-size: 1.5em;
             margin-bottom: 20px;
             text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+            width: 100%;
+        }
+        .rulesContent {
+            color: #fff;
+            font-size: 1em;
+            line-height: 1.5;
+            text-align: left;
+            margin: 15px 0;
+            padding: 0 15px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s forwards;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .bullet-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .bullet-point {
+            position: relative;
+            padding-left: 25px;
+            margin: 8px 0;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+        }
+        .bullet-point:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 8px;
+            height: 8px;
+            background: rgba(0, 255, 255, 0.8);
+            border-radius: 50%;
+            margin-top: 1px;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+        }
+        .bullet-point:after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 12px;
+            width: 1px;
+            height: calc(100% + 4px);
+            background: rgba(0, 255, 255, 0.3);
+            display: none;
+        }
+        .bullet-point:not(:last-child):after {
+            display: block;
+        }
+        .bullet-icon {
+            display: inline-block;
+            margin-right: 8px;
+            font-size: 1.1em;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         .rulesList {
             color: #fff;
             font-size: 1.2em;
             line-height: 1.6;
+            width: 100%;
         }
         .ruleItem {
             margin: 15px 0;
@@ -99,9 +173,50 @@
             border-radius: 5px;
             transition: all 0.3s ease;
         }
-        .ruleItem:hover {
+        .rulesButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .rulesButton {
+            padding: 8px 20px;
+            font-size: 1em;
             background: rgba(0, 255, 255, 0.2);
-            transform: translateX(5px);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .rulesButton:hover {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+        .phase-indicator {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .phase-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+        .phase-dot.active {
+            background: rgba(0, 255, 255, 0.8);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            transform: scale(1.2);
         }
         .startButton {
             display: block;
@@ -118,6 +233,37 @@
         .startButton:hover {
             background: rgba(0, 255, 255, 0.4);
             transform: scale(1.05);
+        }
+        @media (max-height: 600px) {
+            .rulesPopup {
+                height: 70vh;
+                padding: 15px;
+                max-height: 400px;
+            }
+            .rulesTitle {
+                font-size: 1.3em;
+                margin-bottom: 10px;
+            }
+            .rulesContent {
+                font-size: 0.9em;
+                margin: 8px 0;
+            }
+            .rulesButton {
+                padding: 6px 15px;
+            }
+        }
+        @media (max-width: 480px) {
+            .rulesPopup {
+                width: 75%;
+                padding: 15px;
+            }
+            .phase-indicator {
+                right: 8px;
+            }
+            .phase-dot {
+                width: 6px;
+                height: 6px;
+            }
         }
     </style>
 </head>
@@ -138,7 +284,7 @@
         let lives = 3;
         let checkpoint = 0;
         let lastCheckpointTime = 0;
-        let carSpeed = 2;
+        let carSpeed = 3;
         let spawnRate = 0.02;
         let flashAlpha = 0;
         let canvasRatio = 2/3;
@@ -146,8 +292,16 @@
         let achievements = [];
         let combo = 0;
         let maxCombo = 0;
-        let ruleIndex = 0;
-        let ruleTimer = 0;
+        let currentPhase = 1;
+        
+        // New variables for enhancements
+        let isNightMode = false;
+        let dayNightTransition = 0;
+        let lastLevelChange = 0;
+        let currentLevel = 1;
+        let laneAnimOffset = 0;
+        let bgColor = { r: 0, g: 20, b: 40 };
+        let targetBgColor = { r: 0, g: 20, b: 40 };
         
         // Achievement system
         const ACHIEVEMENTS = [
@@ -158,18 +312,103 @@
             { id: 'perfect_level', title: 'Perfect Run', desc: 'Complete a level without getting hit', unlocked: false }
         ];
 
-        const RULES = [
-            "Welcome to Highway Havoc!",
-            "Dodge oncoming traffic and survive!",
-            "Use ← → arrows or buttons to change lanes",
-            "Red cars are dangerous - they come towards you!",
-            "Blue cars go in your direction - less points but safer",
-            "Build combos by dodging consecutive cars",
-            "Reach higher levels for greater challenges",
-            "Unlock achievements to prove your skill!",
-            "Ready to become a Highway Legend?",
-            "Press START when ready!"
+        const INSTRUCTION_PHASES = [
+            {
+                title: "Welcome to Highway Havoc",
+                content: `<div style="text-align: center; margin-bottom: 20px;">You're on the fastest highway, where survival is the only goal.</div>
+                         <ul class="bullet-list">
+                            <li class="bullet-point"><span class="bullet-icon">🎯</span>Navigate through traffic</li>
+                            <li class="bullet-point"><span class="bullet-icon">⚡</span>Test your reflexes</li>
+                            <li class="bullet-point"><span class="bullet-icon">🏆</span>Build your high score</li>
+                         </ul>`
+            },
+            {
+                title: "Game Objective",
+                content: `<ul class="bullet-list">
+                            <li class="bullet-point"><span class="bullet-icon">🛣️</span>Master six lanes of intense traffic</li>
+                            <li class="bullet-point"><span class="bullet-icon">🔴</span>Red cars: Oncoming traffic in right lanes - High risk, high reward</li>
+                            <li class="bullet-point"><span class="bullet-icon">🔵</span>Blue cars: Same direction in left lanes - Safer but fewer points</li>
+                            <li class="bullet-point"><span class="bullet-icon">💡</span>Watch for headlight beams showing car directions</li>
+                            <li class="bullet-point"><span class="bullet-icon">🔥</span>Chain dodges to build combo multipliers</li>
+                         </ul>`
+            },
+            {
+                title: "How to Play",
+                content: isMobile() ? 
+                    `<ul class="bullet-list">
+                        <li class="bullet-point"><span class="bullet-icon">👆</span>Tap left side to move left</li>
+                        <li class="bullet-point"><span class="bullet-icon">👆</span>Tap right side to move right</li>
+                        <li class="bullet-point"><span class="bullet-icon">⚡</span>Quick reactions are key</li>
+                        <li class="bullet-point"><span class="bullet-icon">🎯</span>Time your moves carefully</li>
+                     </ul>` :
+                    `<ul class="bullet-list">
+                        <li class="bullet-point"><span class="bullet-icon">⬅️</span>Left Arrow or 'A' to move left</li>
+                        <li class="bullet-point"><span class="bullet-icon">➡️</span>Right Arrow or 'D' to move right</li>
+                        <li class="bullet-point"><span class="bullet-icon">⚡</span>React quickly to survive</li>
+                        <li class="bullet-point"><span class="bullet-icon">🎯</span>Plan your moves ahead</li>
+                     </ul>`
+            },
+            {
+                title: "Ready to Play?",
+                content: `<div style="text-align: center;">
+                            <div style="font-size: 1.2em; margin-bottom: 15px;">Time to hit the highway!</div>
+                            <ul class="bullet-list">
+                                <li class="bullet-point"><span class="bullet-icon">💫</span>Prove your driving skills</li>
+                                <li class="bullet-point"><span class="bullet-icon">🏆</span>Set new high scores</li>
+                                <li class="bullet-point"><span class="bullet-icon">⭐</span>Unlock achievements</li>
+                            </ul>
+                         </div>`
+            }
         ];
+
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        function showInstructions() {
+            const existingPopup = document.getElementById('rulesPopup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+
+            const popup = document.createElement('div');
+            popup.id = 'rulesPopup';
+            popup.className = 'rulesPopup';
+
+            const phase = INSTRUCTION_PHASES[currentPhase - 1];
+
+            popup.innerHTML = `
+                <h1 class="rulesTitle">${phase.title}</h1>
+                <div class="rulesContent">${phase.content}</div>
+                <div class="phase-indicator">
+                    ${Array(4).fill(0).map((_, i) => 
+                        `<div class="phase-dot${i + 1 === currentPhase ? ' active' : ''}"></div>`
+                    ).join('')}
+                </div>
+                <div class="rulesButtons">
+                    ${currentPhase === 4 ? `
+                        <button class="rulesButton" onclick="startGame()">Start Game</button>
+                        <button class="rulesButton" onclick="resetInstructions()">Replay Instructions</button>
+                    ` : `
+                        <button class="rulesButton" onclick="nextPhase()">Next</button>
+                    `}
+                </div>
+            `;
+
+            document.body.appendChild(popup);
+        }
+
+        function nextPhase() {
+            if (currentPhase < 4) {
+                currentPhase++;
+                showInstructions();
+            }
+        }
+
+        function resetInstructions() {
+            currentPhase = 1;
+            showInstructions();
+        }
 
         function setup() {
             let canvasWidth, canvasHeight;
@@ -185,7 +424,7 @@
             
             player = new Player();
             
-            // Setup controls with proper event handling
+            // Setup controls
             const leftBtn = document.getElementById('leftBtn');
             const rightBtn = document.getElementById('rightBtn');
             const startBtn = document.getElementById('startBtn');
@@ -195,14 +434,17 @@
             leftBtn.addEventListener('mousedown', handleLeft);
             rightBtn.addEventListener('touchstart', handleRight);
             rightBtn.addEventListener('mousedown', handleRight);
-            startBtn.addEventListener('click', startGame);
+            startBtn.addEventListener('click', () => {
+                if (gameState === "rules") {
+                    showInstructions();
+                }
+            });
             restartBtn.addEventListener('click', resetGame);
             
-            // Ensure buttons are visible
-            startBtn.style.display = 'block';
-            restartBtn.style.display = 'none';
+            // Show initial instructions
+            showInstructions();
             
-            // Load achievements from localStorage
+            // Load achievements
             loadAchievements();
         }
 
@@ -318,8 +560,9 @@
                     <div class="rulesList">
                         <div class="ruleItem">🚗 Dodge oncoming traffic and survive!</div>
                         <div class="ruleItem">🎮 Use ← → arrows or buttons to change lanes</div>
-                        <div class="ruleItem">⚠️ Red cars are dangerous - they come towards you!</div>
-                        <div class="ruleItem">🔵 Blue cars go in your direction - less points but safer</div>
+                        <div class="ruleItem">⚠️ Red cars in right lanes are dangerous - they come towards you!</div>
+                        <div class="ruleItem">🔵 Blue cars in left lanes go in your direction - less points but safer</div>
+                        <div class="ruleItem">💡 All cars have bright headlights showing their direction</div>
                         <div class="ruleItem">🔥 Build combos by dodging consecutive cars</div>
                         <div class="ruleItem">📈 Reach higher levels for greater challenges</div>
                         <div class="ruleItem">🏆 Unlock achievements to prove your skill!</div>
@@ -340,30 +583,82 @@
             text("Press 'S' to Start", width/2, height/2);
             textSize(width * 0.03);
             text("Use ← → arrows or buttons to move", width/2, height/2 + height * 0.1);
+            text("Watch for headlight beams to see car directions", width/2, height/2 + height * 0.15);
         }
 
         function playGame() {
-            // Draw vertical lanes with different colors
-            for (let i = 0; i < 6; i++) {
-                // Different colors for opposing traffic lanes
-                if (i < 3) {
-                    fill(0, 50, 100, 30); // Darker blue for oncoming traffic
+            // Update day/night cycle
+            if (currentLevel > 0 && currentLevel % 5 === 0 && millis() - lastLevelChange > 1000) {
+                isNightMode = !isNightMode;
+                dayNightTransition = 255;
+                lastLevelChange = millis();
+                
+                // Set target background colors
+                if (isNightMode) {
+                    targetBgColor = { r: 0, g: 10, b: 30 };
                 } else {
-                    fill(0, 100, 150, 30); // Lighter blue for same direction
+                    targetBgColor = { r: 0, g: 20, b: 40 };
+                }
+            }
+            
+            // Smooth background color transition
+            bgColor.r = lerp(bgColor.r, targetBgColor.r, 0.05);
+            bgColor.g = lerp(bgColor.g, targetBgColor.g, 0.05);
+            bgColor.b = lerp(bgColor.b, targetBgColor.b, 0.05);
+            
+            // Set background
+            background(bgColor.r, bgColor.g, bgColor.b);
+            
+            // Draw lane indicators
+            laneAnimOffset += 0.5;
+            if (laneAnimOffset > height/20) laneAnimOffset = 0;
+            
+            for (let i = 0; i < 6; i++) {
+                // SWAPPED: Now lanes 0-2 are blue (same direction) and lanes 3-5 are red (opposing)
+                if (i < 3) {
+                    // Blue lanes (same direction as player) - moving upward
+                    fill(0, 150, 255, 30);
+                    // Draw upward arrows for same direction traffic
+                    for (let y = -laneAnimOffset; y < height; y += height/20) {
+                        drawArrow(i * width/6 + width/12, y, 1, isNightMode);
+                    }
+                } else {
+                    // Red lanes (opposing traffic) - moving downward
+                    fill(255, 50, 100, 30);
+                    // Draw downward arrows for oncoming traffic
+                    for (let y = -laneAnimOffset; y < height; y += height/20) {
+                        drawArrow(i * width/6 + width/12, y, -1, isNightMode);
+                    }
                 }
                 noStroke();
                 rect(i * width/6, 0, width/6, height);
                 
-                // Lane dividers
-                stroke(0, 150, 255, 100);
+                // Lane dividers with glow effect
+                let dividerColor = isNightMode ? color(0, 150, 255, 150) : color(0, 150, 255, 100);
+                stroke(dividerColor);
+                strokeWeight(2);
                 line((i+1) * width/6, 0, (i+1) * width/6, height);
+                
+                if (isNightMode) {
+                    // Add subtle glow to lane dividers
+                    strokeWeight(4);
+                    stroke(0, 150, 255, 30);
+                    line((i+1) * width/6, 0, (i+1) * width/6, height);
+                }
+            }
+            
+            // Day/night transition overlay
+            if (dayNightTransition > 0) {
+                fill(0, 0, 0, dayNightTransition);
+                rect(0, 0, width, height);
+                dayNightTransition -= 5;
             }
             
             // Update and display player
             player.update();
             player.show();
             
-            // Spawn cars
+            // Spawn and update cars
             if (random() < spawnRate) {
                 cars.push(new Car(floor(random(6))));
             }
@@ -373,28 +668,25 @@
                 cars[i].update();
                 cars[i].show();
                 
-                // Collision detection
                 if (cars[i].hits(player)) {
                     lives--;
                     combo = 0;
                     cars.splice(i, 1);
-                    flashAlpha = 100; // Start flash effect
+                    flashAlpha = 100;
                     if (lives <= 0) {
                         gameState = "gameover";
                     }
                     continue;
                 }
                 
-                // Score points
                 if (!cars[i].scored && cars[i].y > height/2 && cars[i].lane === player.lane) {
                     combo++;
                     maxCombo = Math.max(maxCombo, combo);
                     let comboPoints = (cars[i].direction === 1) ? 10 : 20;
-                    comboPoints *= (1 + combo * 0.1); // 10% bonus per combo
+                    comboPoints *= (1 + combo * 0.1);
                     score += Math.floor(comboPoints);
                     cars[i].scored = true;
                     
-                    // Show combo popup
                     if (combo > 1) {
                         const elem = document.createElement('div');
                         elem.className = 'achievement';
@@ -406,7 +698,6 @@
                     }
                 }
                 
-                // Remove cars off screen
                 if (cars[i].offscreen()) {
                     cars.splice(i, 1);
                 }
@@ -417,10 +708,43 @@
                 carSpeed *= 1.1;
                 spawnRate *= 1.1;
                 lastCheckpointTime = millis();
+                currentLevel++;
+                
+                // Show level up message
+                const elem = document.createElement('div');
+                elem.className = 'achievement';
+                elem.innerHTML = `Level ${currentLevel}!`;
+                elem.style.top = '40%';
+                elem.style.right = '50%';
+                document.body.appendChild(elem);
+                setTimeout(() => elem.remove(), 2000);
             }
             
-            // UI
-            fill(0, 255, 255); // Cyan color for TRON theme
+            // UI elements
+            drawUI();
+        }
+
+        function drawArrow(x, y, direction, isNight) {
+            let arrowSize = width/30;
+            let alpha = isNight ? 150 : 100;
+            
+            noStroke();
+            if (direction === 1) {
+                fill(0, 150, 255, alpha);
+            } else {
+                fill(255, 50, 100, alpha);
+            }
+            
+            beginShape();
+            vertex(x, y + direction * arrowSize/2);
+            vertex(x - arrowSize/4, y - direction * arrowSize/2);
+            vertex(x + arrowSize/4, y - direction * arrowSize/2);
+            endShape(CLOSE);
+        }
+        
+        function drawUI() {
+            // Score and lives
+            fill(0, 255, 255);
             textSize(width * 0.04);
             text(`Score: ${score}`, width * 0.1, height * 0.05);
             
@@ -438,7 +762,10 @@
             textSize(width * 0.04);
             text(`High Score: ${highScore}`, width * 0.1, height * 0.15);
             
-            // Progress bar (now shows difficulty progression)
+            // Level indicator
+            text(`Level: ${currentLevel}`, width * 0.1, height * 0.2);
+            
+            // Progress bar
             noFill();
             stroke(0, 255, 255);
             rect(width * 0.3, height * 0.02, width * 0.4, height * 0.02);
@@ -462,7 +789,7 @@
                 this.lane = 2;
                 this.x = width/2;
                 this.width = width * 0.07;
-                this.height = height * 0.03;
+                this.height = height * 0.05;
                 this.targetLane = 2;
                 this.glowSize = 0;
                 this.glowDir = 1;
@@ -481,31 +808,113 @@
             }
             
             show() {
-                // Draw glow effect
+                // Draw directional glow effect (extending upward)
                 for (let i = 5; i > 0; i--) {
                     noStroke();
-                    fill(255, 255, 0, 150 / i); // Yellow radioactive glow
-                    ellipse(this.x, height/2 + this.height/2, 
-                            this.width + this.glowSize * i, 
-                            this.height + this.glowSize * i);
+                    fill(255, 255, 0, 150 / i);
+                    
+                    // Oval glow that extends more upward than downward
+                    ellipse(
+                        this.x, 
+                        height/2 + this.height * 0.3, // Shifted upward
+                        this.width + this.glowSize * i, 
+                        this.height * 1.5 + this.glowSize * i
+                    );
+                    
+                    // Additional upward glow for motion effect
+                    if (i < 3) {
+                        beginShape();
+                        vertex(this.x - this.width/3, height/2);
+                        vertex(this.x + this.width/3, height/2);
+                        vertex(this.x + this.width/4, height/2 - this.height * i * 0.5);
+                        vertex(this.x - this.width/4, height/2 - this.height * i * 0.5);
+                        endShape(CLOSE);
+                    }
                 }
                 
-                // Draw player car
-                fill(255, 255, 0); // Bright yellow for player
+                // Draw player car with headlights
+                fill(255, 255, 0);
                 stroke(255, 255, 255);
                 strokeWeight(2);
                 rect(this.x - this.width/2, height/2, this.width, this.height, 5);
                 
-                // Car details
+                // Car details (windshield and roof)
                 fill(200, 200, 0);
-                rect(this.x - this.width/4, height/2, this.width/2, this.height/3, 2);
+                rect(this.x - this.width/4, height/2, this.width/2, this.height/2, 2);
                 
-                // Headlights
-                fill(255, 255, 200);
+                // Headlights (brighter at night) - at the top of the car
+                let headlightIntensity = 255; // Always full brightness
+                fill(255, 255, headlightIntensity);
+                let headlightSize = this.height/3; // Always use larger size
+                
+                // Draw headlights at the front (top) of the car
+                ellipse(this.x - this.width/3, height/2 + this.height * 0.2, this.width/6, headlightSize);
+                ellipse(this.x + this.width/3, height/2 + this.height * 0.2, this.width/6, headlightSize);
+                
+                // Headlight beams pointing upward - always visible
+                // Create gradient for headlight beams
+                for (let i = 1; i <= 5; i++) {
+                    noStroke();
+                    fill(255, 255, 200, 40 / i);
+                    
+                    // Left headlight beam - longer and more conical
+                    let beamStartX = this.x - this.width/3;
+                    let beamStartY = height/2 + this.height * 0.2;
+                    let beamLength = this.height * 6; // Length of about 3 cars
+                    let spreadFactor = 1.2; // How much the beam spreads
+                    
+                    // Left beam
+                    beginShape();
+                    vertex(beamStartX, beamStartY); // Beam start (at headlight)
+                    // Left edge of beam
+                    bezierVertex(
+                        beamStartX - this.width * 0.3 * i * spreadFactor, beamStartY - beamLength * 0.3,
+                        beamStartX - this.width * 0.4 * i * spreadFactor, beamStartY - beamLength * 0.6,
+                        beamStartX - this.width * 0.5 * i * spreadFactor, beamStartY - beamLength
+                    );
+                    // Right edge of beam
+                    bezierVertex(
+                        beamStartX + this.width * 0.2 * i * spreadFactor, beamStartY - beamLength * 0.6,
+                        beamStartX + this.width * 0.1 * i * spreadFactor, beamStartY - beamLength * 0.3,
+                        beamStartX, beamStartY
+                    );
+                    endShape(CLOSE);
+                    
+                    // Right beam
+                    beamStartX = this.x + this.width/3;
+                    beginShape();
+                    vertex(beamStartX, beamStartY);
+                    // Left edge of beam
+                    bezierVertex(
+                        beamStartX - this.width * 0.1 * i * spreadFactor, beamStartY - beamLength * 0.3,
+                        beamStartX - this.width * 0.2 * i * spreadFactor, beamStartY - beamLength * 0.6,
+                        beamStartX - this.width * 0.3 * i * spreadFactor, beamStartY - beamLength
+                    );
+                    // Right edge of beam
+                    bezierVertex(
+                        beamStartX + this.width * 0.5 * i * spreadFactor, beamStartY - beamLength * 0.6,
+                        beamStartX + this.width * 0.4 * i * spreadFactor, beamStartY - beamLength * 0.3,
+                        beamStartX, beamStartY
+                    );
+                    endShape(CLOSE);
+                }
+                
+                // Add extra glow effect at the beam source
+                for (let i = 1; i <= 3; i++) {
+                    let glowAlpha = 30 / i;
+                    fill(255, 255, 200, glowAlpha);
+                    ellipse(this.x - this.width/3, height/2 + this.height * 0.2, 
+                           this.width/3 * i, this.height/2 * i);
+                    ellipse(this.x + this.width/3, height/2 + this.height * 0.2, 
+                           this.width/3 * i, this.height/2 * i);
+                }
+                
+                // Add taillights at the bottom
+                fill(255, 50, 50, 255);
                 ellipse(this.x - this.width/3, height/2 + this.height * 0.8, this.width/6, this.height/4);
                 ellipse(this.x + this.width/3, height/2 + this.height * 0.8, this.width/6, this.height/4);
                 
-                strokeWeight(1); // Reset stroke weight
+                strokeWeight(1);
             }
         }
 
@@ -513,24 +922,34 @@
             constructor(lane) {
                 this.lane = lane;
                 this.width = width * 0.07;
-                this.height = height * 0.03;
-                this.direction = (lane < 3) ? -1 : 1;
+                this.height = height * 0.05;
+                // SWAPPED: Now lanes 0-2 are same direction (upward) and lanes 3-5 are opposing (downward)
+                this.direction = (lane < 3) ? 1 : -1;
                 this.x = this.lane * width/6 + width/12;
                 this.y = (this.direction === 1) ? -this.height : height;
                 this.scored = false;
                 
-                // TRON-themed colors based on direction
-                if (this.direction === 1) { // Same direction as player
-                    this.color = color(0, 150, 255); // Blue
+                // Adjust speed based on direction and current level
+                if (this.direction === -1) {
+                    // Opposing traffic (red cars)
+                    this.speed = carSpeed * 2.0 * (1 + currentLevel * 0.15);
+                } else {
+                    // Same direction traffic (blue cars)
+                    this.speed = carSpeed * 1.0 * (1 + currentLevel * 0.1);
+                }
+                
+                // SWAPPED: Now lanes 0-2 are blue and lanes 3-5 are red
+                if (this.direction === 1) {
+                    this.color = color(0, 150, 255);
                     this.detailColor = color(100, 200, 255);
-                } else { // Opposing direction
-                    this.color = color(255, 50, 100); // Red-pink
+                } else {
+                    this.color = color(255, 50, 100);
                     this.detailColor = color(255, 100, 150);
                 }
             }
             
             update() {
-                this.y += carSpeed * this.direction;
+                this.y += this.speed * this.direction;
             }
             
             show() {
@@ -540,25 +959,67 @@
                 strokeWeight(2);
                 rect(this.x - this.width/2, this.y, this.width, this.height, 5);
                 
-                // Car details
+                // Car details - adjust position based on direction
                 fill(this.detailColor);
                 rect(this.x - this.width/4, this.y + (this.direction === 1 ? 0 : this.height * 2/3), 
-                     this.width/2, this.height/3, 2);
+                     this.width/2, this.height/2, 2);
                 
-                // Headlights/taillights
+                // Lights with night mode enhancement
                 if (this.direction === 1) {
-                    // Taillights for cars going same direction as player
-                    fill(255, 50, 50);
-                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
-                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
-                } else {
-                    // Headlights for oncoming cars
-                    fill(255, 255, 200);
+                    // Headlights for blue cars (moving upward)
+                    let headlightIntensity = 255; // Always full brightness
+                    fill(255, 255, headlightIntensity);
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/3);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/3);
+                    
+                    // Taillights at the bottom
+                    fill(255, 50, 50, 255); // Always full brightness
                     ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
+                    
+                    // Headlight beams for blue cars - always visible
+                    for (let i = 1; i <= 3; i++) {
+                        noStroke();
+                        fill(255, 255, 200, 15 / i);
+                        let beamWidth = this.width * (0.5 + i * 0.5);
+                        let beamHeight = this.height * (1 + i);
+                        
+                        // Upward-pointing headlight beams
+                        triangle(
+                            this.x, this.y + this.height * 0.1,
+                            this.x - beamWidth/2, this.y - beamHeight,
+                            this.x + beamWidth/2, this.y - beamHeight
+                        );
+                    }
+                } else {
+                    // Headlights for red cars (moving downward)
+                    let headlightIntensity = 255; // Always full brightness
+                    fill(255, 255, headlightIntensity);
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/3);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/3);
+                    
+                    // Taillights at the top
+                    fill(255, 50, 50, 255); // Always full brightness
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
+                    
+                    // Headlight beams for red cars - always visible
+                    for (let i = 1; i <= 3; i++) {
+                        noStroke();
+                        fill(255, 255, 200, 15 / i);
+                        let beamWidth = this.width * (0.5 + i * 0.5);
+                        let beamHeight = this.height * (1 + i);
+                        
+                        // Downward-pointing headlight beams
+                        triangle(
+                            this.x, this.y + this.height * 0.9,
+                            this.x - beamWidth/2, this.y + this.height + beamHeight,
+                            this.x + beamWidth/2, this.y + this.height + beamHeight
+                        );
+                    }
                 }
                 
-                strokeWeight(1); // Reset stroke weight
+                strokeWeight(1);
             }
             
             hits(player) {
@@ -595,13 +1056,20 @@
             lives = 3;
             checkpoint = 0;
             lastCheckpointTime = millis();
-            carSpeed = 2;
+            carSpeed = 3;
             spawnRate = 0.02;
             cars = [];
             player = new Player();
             gameState = "playing";
             combo = 0;
             maxCombo = 0;
+            currentLevel = 1;
+            isNightMode = false;
+            dayNightTransition = 0;
+            lastLevelChange = millis();
+            bgColor = { r: 0, g: 20, b: 40 };
+            targetBgColor = { r: 0, g: 20, b: 40 };
+            laneAnimOffset = 0;
             
             // Update button visibility
             const startBtn = document.getElementById('startBtn');
