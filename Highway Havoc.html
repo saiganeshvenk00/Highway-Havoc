@@ -328,7 +328,7 @@
                             <li class="bullet-point"><span class="bullet-icon">🛣️</span>Master six lanes of intense traffic</li>
                             <li class="bullet-point"><span class="bullet-icon">🔴</span>Red cars: Oncoming traffic in left lanes - High risk, high reward</li>
                             <li class="bullet-point"><span class="bullet-icon">🔵</span>Blue cars: Same direction in right lanes - Safer but fewer points</li>
-                            <li class="bullet-point"><span class="bullet-icon">💡</span>Watch for headlight beams - they always point in the direction of car movement</li>
+                            <li class="bullet-point"><span class="bullet-icon">💡</span>Watch for headlight beams - they show direction of movement</li>
                             <li class="bullet-point"><span class="bullet-icon">🔥</span>Chain dodges to build combo multipliers</li>
                          </ul>`
             },
@@ -562,7 +562,7 @@
                         <div class="ruleItem">🎮 Use ← → arrows or buttons to change lanes</div>
                         <div class="ruleItem">⚠️ Red cars in left lanes are dangerous - they come towards you!</div>
                         <div class="ruleItem">🔵 Blue cars in right lanes go in your direction - less points but safer</div>
-                        <div class="ruleItem">💡 All cars have bright headlights pointing in their direction of travel</div>
+                        <div class="ruleItem">💡 All cars have headlights showing their direction of travel</div>
                         <div class="ruleItem">🔥 Build combos by dodging consecutive cars</div>
                         <div class="ruleItem">📈 Reach higher levels for greater challenges</div>
                         <div class="ruleItem">🏆 Unlock achievements to prove your skill!</div>
@@ -582,8 +582,9 @@
             textSize(width * 0.05);
             text("Press 'S' to Start", width/2, height/2);
             textSize(width * 0.03);
-            text("Use ← → arrows or buttons to move", width/2, height/2 + height * 0.1);
-            text("Headlight beams show the direction cars are moving", width/2, height/2 + height * 0.15);
+            text("Use ← → arrows to change lanes", width/2, height/2 + height * 0.1);
+            text("Headlights show the direction cars are moving", width/2, height/2 + height * 0.15);
+            textAlign(LEFT);
         }
 
         function playGame() {
@@ -705,19 +706,86 @@
             
             // Progressive difficulty
             if (millis() - lastCheckpointTime > 10000) {
-                carSpeed *= 1.1;
-                spawnRate *= 1.1;
+                // Level-based difficulty scaling with smoother transitions
+                // Levels 1-5: Increase speed, keep spawn rate constant
+                // Levels 6-10: Keep speed constant, increase spawn rate
+                // Repeat pattern every 10 levels
+                
+                // Determine which phase we're in (speed increase or density increase)
+                let levelGroup = Math.floor((currentLevel - 1) / 5);
+                let isSpeedPhase = levelGroup % 2 === 0; // Even groups (0, 2, 4...) focus on speed
+                let nextLevel = currentLevel + 1;
+                let isTransitionLevel = nextLevel % 5 === 1; // Level before phase change
+                
+                // Calculate more balanced increases based on current level
+                let speedIncrease, spawnRateIncrease;
+                
+                if (isSpeedPhase) {
+                    // Speed increase phase (levels 1-5, 11-15, 21-25, etc.)
+                    // More gradual speed increases that taper off
+                    let levelInPhase = (currentLevel - 1) % 5 + 1;
+                    speedIncrease = 0.25 - (levelInPhase * 0.01); // Slightly decreasing speed increases
+                    spawnRateIncrease = 0.0005 + (levelInPhase * 0.0001); // Slightly increasing spawn rate
+                } else {
+                    // Density increase phase (levels 6-10, 16-20, 26-30, etc.)
+                    // More gradual density increases that ramp up
+                    let levelInPhase = (currentLevel - 1) % 5 + 1;
+                    speedIncrease = 0.05 + (levelInPhase * 0.005); // Slightly increasing speed
+                    spawnRateIncrease = 0.002 + (levelInPhase * 0.0005); // Ramping up spawn rate
+                }
+                
+                // Apply increases
+                carSpeed += speedIncrease;
+                spawnRate += spawnRateIncrease;
+                
+                // Cap maximum values to prevent the game from becoming impossible
+                carSpeed = Math.min(carSpeed, 12);
+                spawnRate = Math.min(spawnRate, 0.15);
+                
                 lastCheckpointTime = millis();
                 currentLevel++;
                 
-                // Show level up message
+                // Show level up message with phase information
                 const elem = document.createElement('div');
                 elem.className = 'achievement';
-                elem.innerHTML = `Level ${currentLevel}!`;
+                
+                // Determine if this is the start of a new phase or a transition to a new phase
+                let isNewPhase = currentLevel % 5 === 1;
+                
+                if (isNewPhase) {
+                    // New phase announcement
+                    let phaseType = isSpeedPhase ? "Speed Phase" : "Density Phase";
+                    elem.innerHTML = `Level ${currentLevel}!<br>${phaseType} Begins!`;
+                    
+                    // Play a more noticeable transition effect
+                    dayNightTransition = 255; // Flash the screen
+                    
+                    // Show phase transition effect
+                    const phaseTransition = document.createElement('div');
+                    phaseTransition.className = 'achievement';
+                    phaseTransition.style.background = 'rgba(0, 255, 255, 0.3)';
+                    phaseTransition.style.border = '3px solid rgba(0, 255, 255, 0.9)';
+                    phaseTransition.style.padding = '20px';
+                    phaseTransition.style.fontSize = '1.2em';
+                    phaseTransition.innerHTML = `<strong>${phaseType}</strong><br>Difficulty Shifting!`;
+                    phaseTransition.style.top = '30%';
+                    phaseTransition.style.right = '50%';
+                    document.body.appendChild(phaseTransition);
+                    setTimeout(() => phaseTransition.remove(), 3000);
+                } else if (isTransitionLevel) {
+                    // Warning about upcoming phase change
+                    let nextPhaseType = isSpeedPhase ? "Density Phase" : "Speed Phase";
+                    elem.innerHTML = `Level ${currentLevel}!<br>Warning: ${nextPhaseType} Coming Soon!`;
+                } else {
+                    // Regular level up
+                    let phaseType = isSpeedPhase ? "Speed Increasing" : "Traffic Increasing";
+                    elem.innerHTML = `Level ${currentLevel}!<br>${phaseType}`;
+                }
+                
                 elem.style.top = '40%';
                 elem.style.right = '50%';
                 document.body.appendChild(elem);
-                setTimeout(() => elem.remove(), 2000);
+                setTimeout(() => elem.remove(), 2500);
             }
             
             // UI elements
@@ -766,6 +834,7 @@
             text(`Level: ${currentLevel}`, width * 0.1, height * 0.2);
             
             // Progress bar
+            fill(0, 255, 255);
             noFill();
             stroke(0, 255, 255);
             rect(width * 0.3, height * 0.02, width * 0.4, height * 0.02);
@@ -780,8 +849,9 @@
             text("Game Over", width/2, height/3);
             textSize(width * 0.05);
             text(`Final Score: ${score}`, width/2, height/2);
-            text(`High Score: ${highScore}`, width/2, height/2 + height * 0.1);
-            text("Press 'R' to Restart", width/2, height/2 + height * 0.2);
+            text(`Level Reached: ${currentLevel}`, width/2, height/2 + height * 0.1);
+            text(`High Score: ${highScore}`, width/2, height/2 + height * 0.2);
+            text("Press 'R' to Restart", width/2, height/2 + height * 0.3);
         }
 
         class Player {
@@ -930,12 +1000,51 @@
                 this.scored = false;
                 
                 // Adjust speed based on direction and current level
-                if (this.direction === -1) {
-                    // Opposing traffic (red cars)
-                    this.speed = carSpeed * 2.0 * (1 + currentLevel * 0.15);
+                // Calculate level group and phase for consistent difficulty scaling
+                let levelGroup = Math.floor((currentLevel - 1) / 5);
+                let isSpeedPhase = levelGroup % 2 === 0; // Even groups (0, 2, 4...) focus on speed
+                let levelInPhase = (currentLevel - 1) % 5 + 1;
+                let isTransitionLevel = levelInPhase === 5; // Last level in a phase
+                
+                // Base multiplier depends on direction
+                let baseMultiplier = (this.direction === -1) ? 2.0 : 1.0;
+                
+                // Level-based scaling factor with smoother transitions
+                let levelScaling;
+                
+                if (isSpeedPhase) {
+                    // During speed phases, scale more with level but with diminishing returns
+                    levelScaling = 0.05 + Math.min(0.35, levelInPhase * 0.07);
                 } else {
-                    // Same direction traffic (blue cars)
-                    this.speed = carSpeed * 1.0 * (1 + currentLevel * 0.1);
+                    // During density phases, scale minimally with level but still increase
+                    levelScaling = 0.05 + Math.min(0.15, levelInPhase * 0.03);
+                }
+                
+                // Apply transition smoothing - reduce speed jump between phases
+                if (isTransitionLevel) {
+                    // If we're at the last level of a phase, start transitioning to next phase
+                    if (isSpeedPhase) {
+                        // Transitioning from speed to density - reduce speed scaling slightly
+                        levelScaling *= 0.9;
+                    } else {
+                        // Transitioning from density to speed - increase speed scaling slightly
+                        levelScaling *= 1.1;
+                    }
+                }
+                
+                // Calculate final speed with more balanced scaling
+                this.speed = carSpeed * baseMultiplier * (1 + levelScaling);
+                
+                // Apply direction-specific adjustments with better balance
+                if (this.direction === -1) {
+                    // Opposing traffic (red cars) - always faster but with balanced scaling
+                    this.speed *= 1.1;
+                    
+                    // Add slight randomization to make gameplay less predictable but still fair
+                    this.speed *= (0.95 + Math.random() * 0.1); // ±5% speed variation
+                } else {
+                    // Same-direction traffic (blue cars) - add slight randomization
+                    this.speed *= (0.97 + Math.random() * 0.06); // ±3% speed variation
                 }
                 
                 // UPDATED: Now lanes 0-2 are red and lanes 3-5 are blue
@@ -1058,8 +1167,8 @@
             lives = 3;
             checkpoint = 0;
             lastCheckpointTime = millis();
-            carSpeed = 3;
-            spawnRate = 0.02;
+            carSpeed = 3; // Initial car speed
+            spawnRate = 0.02; // Initial spawn rate
             cars = [];
             player = new Player();
             gameState = "playing";
