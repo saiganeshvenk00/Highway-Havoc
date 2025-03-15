@@ -326,9 +326,9 @@
                 title: "Game Objective",
                 content: `<ul class="bullet-list">
                             <li class="bullet-point"><span class="bullet-icon">🛣️</span>Master six lanes of intense traffic</li>
-                            <li class="bullet-point"><span class="bullet-icon">🔴</span>Red cars: Oncoming traffic in right lanes - High risk, high reward</li>
-                            <li class="bullet-point"><span class="bullet-icon">🔵</span>Blue cars: Same direction in left lanes - Safer but fewer points</li>
-                            <li class="bullet-point"><span class="bullet-icon">💡</span>Watch for headlight beams showing car directions</li>
+                            <li class="bullet-point"><span class="bullet-icon">🔴</span>Red cars: Oncoming traffic in left lanes - High risk, high reward</li>
+                            <li class="bullet-point"><span class="bullet-icon">🔵</span>Blue cars: Same direction in right lanes - Safer but fewer points</li>
+                            <li class="bullet-point"><span class="bullet-icon">💡</span>Watch for headlight beams - they always point in the direction of car movement</li>
                             <li class="bullet-point"><span class="bullet-icon">🔥</span>Chain dodges to build combo multipliers</li>
                          </ul>`
             },
@@ -560,9 +560,9 @@
                     <div class="rulesList">
                         <div class="ruleItem">🚗 Dodge oncoming traffic and survive!</div>
                         <div class="ruleItem">🎮 Use ← → arrows or buttons to change lanes</div>
-                        <div class="ruleItem">⚠️ Red cars in right lanes are dangerous - they come towards you!</div>
-                        <div class="ruleItem">🔵 Blue cars in left lanes go in your direction - less points but safer</div>
-                        <div class="ruleItem">💡 All cars have bright headlights showing their direction</div>
+                        <div class="ruleItem">⚠️ Red cars in left lanes are dangerous - they come towards you!</div>
+                        <div class="ruleItem">🔵 Blue cars in right lanes go in your direction - less points but safer</div>
+                        <div class="ruleItem">💡 All cars have bright headlights pointing in their direction of travel</div>
                         <div class="ruleItem">🔥 Build combos by dodging consecutive cars</div>
                         <div class="ruleItem">📈 Reach higher levels for greater challenges</div>
                         <div class="ruleItem">🏆 Unlock achievements to prove your skill!</div>
@@ -583,7 +583,7 @@
             text("Press 'S' to Start", width/2, height/2);
             textSize(width * 0.03);
             text("Use ← → arrows or buttons to move", width/2, height/2 + height * 0.1);
-            text("Watch for headlight beams to see car directions", width/2, height/2 + height * 0.15);
+            text("Headlight beams show the direction cars are moving", width/2, height/2 + height * 0.15);
         }
 
         function playGame() {
@@ -614,16 +614,16 @@
             if (laneAnimOffset > height/20) laneAnimOffset = 0;
             
             for (let i = 0; i < 6; i++) {
-                // SWAPPED: Now lanes 0-2 are blue (same direction) and lanes 3-5 are red (opposing)
-                if (i < 3) {
-                    // Blue lanes (same direction as player) - moving upward
+                // UPDATED: Now lanes 0-2 are red (opposing) and lanes 3-5 are blue (same direction)
+                if (i >= 3) {
+                    // Blue lanes (same direction as player) - moving upward - RIGHT SIDE
                     fill(0, 150, 255, 30);
                     // Draw upward arrows for same direction traffic
                     for (let y = -laneAnimOffset; y < height; y += height/20) {
                         drawArrow(i * width/6 + width/12, y, 1, isNightMode);
                     }
                 } else {
-                    // Red lanes (opposing traffic) - moving downward
+                    // Red lanes (opposing traffic) - moving downward - LEFT SIDE
                     fill(255, 50, 100, 30);
                     // Draw downward arrows for oncoming traffic
                     for (let y = -laneAnimOffset; y < height; y += height/20) {
@@ -786,11 +786,11 @@
 
         class Player {
             constructor() {
-                this.lane = 2;
+                this.lane = 4; // Start in a blue lane (right side)
                 this.x = width/2;
                 this.width = width * 0.07;
                 this.height = height * 0.05;
-                this.targetLane = 2;
+                this.targetLane = 4; // Start in a blue lane (right side)
                 this.glowSize = 0;
                 this.glowDir = 1;
             }
@@ -842,16 +842,16 @@
                 fill(200, 200, 0);
                 rect(this.x - this.width/4, height/2, this.width/2, this.height/2, 2);
                 
-                // Headlights (brighter at night) - at the top of the car
+                // FLIPPED: Headlights at the BOTTOM of the car (front for upward movement)
                 let headlightIntensity = 255; // Always full brightness
                 fill(255, 255, headlightIntensity);
                 let headlightSize = this.height/3; // Always use larger size
                 
-                // Draw headlights at the front (top) of the car
-                ellipse(this.x - this.width/3, height/2 + this.height * 0.2, this.width/6, headlightSize);
-                ellipse(this.x + this.width/3, height/2 + this.height * 0.2, this.width/6, headlightSize);
+                // Draw headlights at the bottom of the car
+                ellipse(this.x - this.width/3, height/2 + this.height * 0.8, this.width/6, headlightSize);
+                ellipse(this.x + this.width/3, height/2 + this.height * 0.8, this.width/6, headlightSize);
                 
-                // Headlight beams pointing upward - always visible
+                // Headlight beams pointing upward from the bottom - always visible
                 // Create gradient for headlight beams
                 for (let i = 1; i <= 5; i++) {
                     noStroke();
@@ -859,23 +859,23 @@
                     
                     // Left headlight beam - longer and more conical
                     let beamStartX = this.x - this.width/3;
-                    let beamStartY = height/2 + this.height * 0.2;
+                    let beamStartY = height/2 + this.height * 0.8;
                     let beamLength = this.height * 6; // Length of about 3 cars
                     let spreadFactor = 1.2; // How much the beam spreads
                     
-                    // Left beam
+                    // Left beam - now pointing upward from the bottom
                     beginShape();
                     vertex(beamStartX, beamStartY); // Beam start (at headlight)
                     // Left edge of beam
                     bezierVertex(
-                        beamStartX - this.width * 0.3 * i * spreadFactor, beamStartY - beamLength * 0.3,
-                        beamStartX - this.width * 0.4 * i * spreadFactor, beamStartY - beamLength * 0.6,
-                        beamStartX - this.width * 0.5 * i * spreadFactor, beamStartY - beamLength
+                        beamStartX - this.width * 0.3 * i * spreadFactor, beamStartY + beamLength * 0.3,
+                        beamStartX - this.width * 0.4 * i * spreadFactor, beamStartY + beamLength * 0.6,
+                        beamStartX - this.width * 0.5 * i * spreadFactor, beamStartY + beamLength
                     );
                     // Right edge of beam
                     bezierVertex(
-                        beamStartX + this.width * 0.2 * i * spreadFactor, beamStartY - beamLength * 0.6,
-                        beamStartX + this.width * 0.1 * i * spreadFactor, beamStartY - beamLength * 0.3,
+                        beamStartX + this.width * 0.2 * i * spreadFactor, beamStartY + beamLength * 0.6,
+                        beamStartX + this.width * 0.1 * i * spreadFactor, beamStartY + beamLength * 0.3,
                         beamStartX, beamStartY
                     );
                     endShape(CLOSE);
@@ -886,14 +886,14 @@
                     vertex(beamStartX, beamStartY);
                     // Left edge of beam
                     bezierVertex(
-                        beamStartX - this.width * 0.1 * i * spreadFactor, beamStartY - beamLength * 0.3,
-                        beamStartX - this.width * 0.2 * i * spreadFactor, beamStartY - beamLength * 0.6,
-                        beamStartX - this.width * 0.3 * i * spreadFactor, beamStartY - beamLength
+                        beamStartX - this.width * 0.1 * i * spreadFactor, beamStartY + beamLength * 0.3,
+                        beamStartX - this.width * 0.2 * i * spreadFactor, beamStartY + beamLength * 0.6,
+                        beamStartX - this.width * 0.3 * i * spreadFactor, beamStartY + beamLength
                     );
                     // Right edge of beam
                     bezierVertex(
-                        beamStartX + this.width * 0.5 * i * spreadFactor, beamStartY - beamLength * 0.6,
-                        beamStartX + this.width * 0.4 * i * spreadFactor, beamStartY - beamLength * 0.3,
+                        beamStartX + this.width * 0.5 * i * spreadFactor, beamStartY + beamLength * 0.6,
+                        beamStartX + this.width * 0.4 * i * spreadFactor, beamStartY + beamLength * 0.3,
                         beamStartX, beamStartY
                     );
                     endShape(CLOSE);
@@ -903,16 +903,16 @@
                 for (let i = 1; i <= 3; i++) {
                     let glowAlpha = 30 / i;
                     fill(255, 255, 200, glowAlpha);
-                    ellipse(this.x - this.width/3, height/2 + this.height * 0.2, 
+                    ellipse(this.x - this.width/3, height/2 + this.height * 0.8, 
                            this.width/3 * i, this.height/2 * i);
-                    ellipse(this.x + this.width/3, height/2 + this.height * 0.2, 
+                    ellipse(this.x + this.width/3, height/2 + this.height * 0.8, 
                            this.width/3 * i, this.height/2 * i);
                 }
                 
-                // Add taillights at the bottom
+                // Add taillights at the top
                 fill(255, 50, 50, 255);
-                ellipse(this.x - this.width/3, height/2 + this.height * 0.8, this.width/6, this.height/4);
-                ellipse(this.x + this.width/3, height/2 + this.height * 0.8, this.width/6, this.height/4);
+                ellipse(this.x - this.width/3, height/2 + this.height * 0.2, this.width/6, this.height/4);
+                ellipse(this.x + this.width/3, height/2 + this.height * 0.2, this.width/6, this.height/4);
                 
                 strokeWeight(1);
             }
@@ -923,8 +923,8 @@
                 this.lane = lane;
                 this.width = width * 0.07;
                 this.height = height * 0.05;
-                // SWAPPED: Now lanes 0-2 are same direction (upward) and lanes 3-5 are opposing (downward)
-                this.direction = (lane < 3) ? 1 : -1;
+                // UPDATED: Now lanes 0-2 are red (opposing) and lanes 3-5 are blue (same direction)
+                this.direction = (lane < 3) ? -1 : 1;
                 this.x = this.lane * width/6 + width/12;
                 this.y = (this.direction === 1) ? -this.height : height;
                 this.scored = false;
@@ -938,7 +938,7 @@
                     this.speed = carSpeed * 1.0 * (1 + currentLevel * 0.1);
                 }
                 
-                // SWAPPED: Now lanes 0-2 are blue and lanes 3-5 are red
+                // UPDATED: Now lanes 0-2 are red and lanes 3-5 are blue
                 if (this.direction === 1) {
                     this.color = color(0, 150, 255);
                     this.detailColor = color(100, 200, 255);
@@ -966,33 +966,8 @@
                 
                 // Lights with night mode enhancement
                 if (this.direction === 1) {
-                    // Headlights for blue cars (moving upward)
-                    let headlightIntensity = 255; // Always full brightness
-                    fill(255, 255, headlightIntensity);
-                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/3);
-                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/3);
-                    
-                    // Taillights at the bottom
-                    fill(255, 50, 50, 255); // Always full brightness
-                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
-                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
-                    
-                    // Headlight beams for blue cars - always visible
-                    for (let i = 1; i <= 3; i++) {
-                        noStroke();
-                        fill(255, 255, 200, 15 / i);
-                        let beamWidth = this.width * (0.5 + i * 0.5);
-                        let beamHeight = this.height * (1 + i);
-                        
-                        // Upward-pointing headlight beams
-                        triangle(
-                            this.x, this.y + this.height * 0.1,
-                            this.x - beamWidth/2, this.y - beamHeight,
-                            this.x + beamWidth/2, this.y - beamHeight
-                        );
-                    }
-                } else {
-                    // Headlights for red cars (moving downward)
+                    // FLIPPED: For blue cars moving upward, headlights at the BOTTOM (front in direction of movement)
+                    // Headlights at the bottom of the car
                     let headlightIntensity = 255; // Always full brightness
                     fill(255, 255, headlightIntensity);
                     ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/3);
@@ -1003,18 +978,45 @@
                     ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
                     
-                    // Headlight beams for red cars - always visible
+                    // Headlight beams for blue cars - always visible and pointing UPWARD from the bottom
                     for (let i = 1; i <= 3; i++) {
                         noStroke();
                         fill(255, 255, 200, 15 / i);
                         let beamWidth = this.width * (0.5 + i * 0.5);
                         let beamHeight = this.height * (1 + i);
                         
-                        // Downward-pointing headlight beams
+                        // Upward-pointing headlight beams from the bottom of the car
                         triangle(
                             this.x, this.y + this.height * 0.9,
                             this.x - beamWidth/2, this.y + this.height + beamHeight,
                             this.x + beamWidth/2, this.y + this.height + beamHeight
+                        );
+                    }
+                } else {
+                    // FLIPPED: For red cars moving downward, headlights at the TOP (front in direction of movement)
+                    // Headlights at the top of the car
+                    let headlightIntensity = 255; // Always full brightness
+                    fill(255, 255, headlightIntensity);
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/3);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/3);
+                    
+                    // Taillights at the bottom
+                    fill(255, 50, 50, 255); // Always full brightness
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
+                    
+                    // Headlight beams for red cars - always visible and pointing DOWNWARD from the top
+                    for (let i = 1; i <= 3; i++) {
+                        noStroke();
+                        fill(255, 255, 200, 15 / i);
+                        let beamWidth = this.width * (0.5 + i * 0.5);
+                        let beamHeight = this.height * (1 + i);
+                        
+                        // Downward-pointing headlight beams from the top of the car
+                        triangle(
+                            this.x, this.y + this.height * 0.1,
+                            this.x - beamWidth/2, this.y - beamHeight,
+                            this.x + beamWidth/2, this.y - beamHeight
                         );
                     }
                 }
