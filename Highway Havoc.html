@@ -564,7 +564,7 @@
                         <div class="ruleItem">🔵 Blue cars in right lanes go in your direction - less points but safer</div>
                         <div class="ruleItem">💡 All cars have headlights showing their direction of travel</div>
                         <div class="ruleItem">🔥 Build combos by dodging consecutive cars</div>
-                        <div class="ruleItem">📈 Reach higher levels for greater challenges</div>
+                        <div class="ruleItem">🌙 Even levels are night mode, odd levels are day mode</div>
                         <div class="ruleItem">🏆 Unlock achievements to prove your skill!</div>
                         <div class="ruleItem">💫 Ready to become a Highway Legend?</div>
                     </div>
@@ -589,16 +589,22 @@
 
         function playGame() {
             // Update day/night cycle
-            if (currentLevel > 0 && currentLevel % 5 === 0 && millis() - lastLevelChange > 1000) {
-                isNightMode = !isNightMode;
-                dayNightTransition = 255;
-                lastLevelChange = millis();
+            if (currentLevel > 0 && millis() - lastLevelChange > 1000) {
+                // Check if we need to update the day/night mode based on level
+                let shouldBeNightMode = currentLevel % 2 === 0;
                 
-                // Set target background colors
-                if (isNightMode) {
-                    targetBgColor = { r: 0, g: 10, b: 30 };
-                } else {
-                    targetBgColor = { r: 0, g: 20, b: 40 };
+                // Only trigger transition if the mode is changing
+                if (shouldBeNightMode !== isNightMode) {
+                    isNightMode = shouldBeNightMode;
+                    dayNightTransition = 255;
+                    lastLevelChange = millis();
+                    
+                    // Set target background colors
+                    if (isNightMode) {
+                        targetBgColor = { r: 40, g: 20, b: 0 }; // Negative colors for night mode
+                    } else {
+                        targetBgColor = { r: 0, g: 20, b: 40 }; // Normal colors for day mode
+                    }
                 }
             }
             
@@ -618,14 +624,24 @@
                 // UPDATED: Now lanes 0-2 are red (opposing) and lanes 3-5 are blue (same direction)
                 if (i >= 3) {
                     // Blue lanes (same direction as player) - moving upward - RIGHT SIDE
-                    fill(0, 150, 255, 30);
+                    // Use negative colors in night mode
+                    if (isNightMode) {
+                        fill(255, 105, 0, 30); // Negative of blue
+                    } else {
+                        fill(0, 150, 255, 30); // Normal blue
+                    }
                     // Draw upward arrows for same direction traffic
                     for (let y = -laneAnimOffset; y < height; y += height/20) {
                         drawArrow(i * width/6 + width/12, y, 1, isNightMode);
                     }
                 } else {
                     // Red lanes (opposing traffic) - moving downward - LEFT SIDE
-                    fill(255, 50, 100, 30);
+                    // Use negative colors in night mode
+                    if (isNightMode) {
+                        fill(0, 205, 155, 30); // Negative of red
+                    } else {
+                        fill(255, 50, 100, 30); // Normal red
+                    }
                     // Draw downward arrows for oncoming traffic
                     for (let y = -laneAnimOffset; y < height; y += height/20) {
                         drawArrow(i * width/6 + width/12, y, -1, isNightMode);
@@ -635,7 +651,7 @@
                 rect(i * width/6, 0, width/6, height);
                 
                 // Lane dividers with glow effect
-                let dividerColor = isNightMode ? color(0, 150, 255, 150) : color(0, 150, 255, 100);
+                let dividerColor = isNightMode ? color(255, 105, 0, 150) : color(0, 150, 255, 100);
                 stroke(dividerColor);
                 strokeWeight(2);
                 line((i+1) * width/6, 0, (i+1) * width/6, height);
@@ -643,7 +659,7 @@
                 if (isNightMode) {
                     // Add subtle glow to lane dividers
                     strokeWeight(4);
-                    stroke(0, 150, 255, 30);
+                    stroke(255, 105, 0, 30);
                     line((i+1) * width/6, 0, (i+1) * width/6, height);
                 }
             }
@@ -752,10 +768,18 @@
                 // Determine if this is the start of a new phase or a transition to a new phase
                 let isNewPhase = currentLevel % 5 === 1;
                 
+                // Check if day/night mode should change
+                let shouldBeNightMode = currentLevel % 2 === 0;
+                let dayNightText = "";
+                
+                if (shouldBeNightMode !== isNightMode) {
+                    dayNightText = shouldBeNightMode ? "<br>Night Mode Activated!" : "<br>Day Mode Activated!";
+                }
+                
                 if (isNewPhase) {
                     // New phase announcement
                     let phaseType = isSpeedPhase ? "Speed Phase" : "Density Phase";
-                    elem.innerHTML = `Level ${currentLevel}!<br>${phaseType} Begins!`;
+                    elem.innerHTML = `Level ${currentLevel}!<br>${phaseType} Begins!${dayNightText}`;
                     
                     // Play a more noticeable transition effect
                     dayNightTransition = 255; // Flash the screen
@@ -775,11 +799,11 @@
                 } else if (isTransitionLevel) {
                     // Warning about upcoming phase change
                     let nextPhaseType = isSpeedPhase ? "Density Phase" : "Speed Phase";
-                    elem.innerHTML = `Level ${currentLevel}!<br>Warning: ${nextPhaseType} Coming Soon!`;
+                    elem.innerHTML = `Level ${currentLevel}!<br>Warning: ${nextPhaseType} Coming Soon!${dayNightText}`;
                 } else {
                     // Regular level up
                     let phaseType = isSpeedPhase ? "Speed Increasing" : "Traffic Increasing";
-                    elem.innerHTML = `Level ${currentLevel}!<br>${phaseType}`;
+                    elem.innerHTML = `Level ${currentLevel}!<br>${phaseType}${dayNightText}`;
                 }
                 
                 elem.style.top = '40%';
@@ -798,9 +822,17 @@
             
             noStroke();
             if (direction === 1) {
-                fill(0, 150, 255, alpha);
+                if (isNight) {
+                    fill(255, 105, 0, alpha); // Negative of blue
+                } else {
+                    fill(0, 150, 255, alpha); // Normal blue
+                }
             } else {
-                fill(255, 50, 100, alpha);
+                if (isNight) {
+                    fill(0, 205, 155, alpha); // Negative of red
+                } else {
+                    fill(255, 50, 100, alpha); // Normal red
+                }
             }
             
             beginShape();
@@ -812,7 +844,11 @@
         
         function drawUI() {
             // Score and lives
-            fill(0, 255, 255);
+            if (isNightMode) {
+                fill(255, 0, 0); // Negative of cyan
+            } else {
+                fill(0, 255, 255);
+            }
             textSize(width * 0.04);
             text(`Score: ${score}`, width * 0.1, height * 0.05);
             
@@ -834,16 +870,31 @@
             text(`Level: ${currentLevel}`, width * 0.1, height * 0.2);
             
             // Progress bar
-            fill(0, 255, 255);
-            noFill();
-            stroke(0, 255, 255);
+            if (isNightMode) {
+                fill(255, 0, 0); // Negative of cyan
+                noFill();
+                stroke(255, 0, 0);
+            } else {
+                fill(0, 255, 255);
+                noFill();
+                stroke(0, 255, 255);
+            }
             rect(width * 0.3, height * 0.02, width * 0.4, height * 0.02);
-            fill(0, 255, 255, 100);
+            
+            if (isNightMode) {
+                fill(255, 0, 0, 100); // Negative of cyan with alpha
+            } else {
+                fill(0, 255, 255, 100);
+            }
             rect(width * 0.3, height * 0.02, map(millis() - lastCheckpointTime, 0, 10000, 0, width * 0.4), height * 0.02);
         }
 
         function drawGameOver() {
-            fill(0, 255, 255); // Cyan color for TRON theme
+            if (isNightMode) {
+                fill(255, 0, 0); // Negative of cyan
+            } else {
+                fill(0, 255, 255); // Cyan color for TRON theme
+            }
             textSize(width * 0.08);
             textAlign(CENTER);
             text("Game Over", width/2, height/3);
@@ -881,7 +932,12 @@
                 // Draw directional glow effect (extending upward)
                 for (let i = 5; i > 0; i--) {
                     noStroke();
-                    fill(255, 255, 0, 150 / i);
+                    // Use negative colors in night mode
+                    if (isNightMode) {
+                        fill(0, 0, 255, 150 / i); // Negative of yellow
+                    } else {
+                        fill(255, 255, 0, 150 / i); // Normal yellow
+                    }
                     
                     // Oval glow that extends more upward than downward
                     ellipse(
@@ -903,19 +959,30 @@
                 }
                 
                 // Draw player car with headlights
-                fill(255, 255, 0);
-                stroke(255, 255, 255);
+                if (isNightMode) {
+                    fill(0, 0, 255); // Negative of yellow
+                    stroke(0, 0, 0);
+                } else {
+                    fill(255, 255, 0);
+                    stroke(255, 255, 255);
+                }
                 strokeWeight(2);
                 rect(this.x - this.width/2, height/2, this.width, this.height, 5);
                 
                 // Car details (windshield and roof)
-                fill(200, 200, 0);
+                if (isNightMode) {
+                    fill(55, 55, 255); // Negative of yellow detail
+                } else {
+                    fill(200, 200, 0);
+                }
                 rect(this.x - this.width/4, height/2, this.width/2, this.height/2, 2);
                 
                 // FLIPPED: Headlights at the BOTTOM of the car (front for upward movement)
                 let headlightIntensity = 255; // Always full brightness
                 fill(255, 255, headlightIntensity);
-                let headlightSize = this.height/3; // Always use larger size
+                
+                // Make headlights larger in night mode
+                let headlightSize = isNightMode ? this.height/2 : this.height/3;
                 
                 // Draw headlights at the bottom of the car
                 ellipse(this.x - this.width/3, height/2 + this.height * 0.8, this.width/6, headlightSize);
@@ -925,12 +992,15 @@
                 // Create gradient for headlight beams
                 for (let i = 1; i <= 5; i++) {
                     noStroke();
-                    fill(255, 255, 200, 40 / i);
+                    // Brighter beams in night mode
+                    let beamAlpha = isNightMode ? 60 / i : 40 / i;
+                    fill(255, 255, 200, beamAlpha);
                     
                     // Left headlight beam - longer and more conical
                     let beamStartX = this.x - this.width/3;
                     let beamStartY = height/2 + this.height * 0.8;
-                    let beamLength = this.height * 6; // Length of about 3 cars
+                    // Longer beams in night mode
+                    let beamLength = isNightMode ? this.height * 8 : this.height * 6;
                     let spreadFactor = 1.2; // How much the beam spreads
                     
                     // Left beam - now pointing upward from the bottom
@@ -969,14 +1039,16 @@
                     endShape(CLOSE);
                 }
                 
-                // Add extra glow effect at the beam source
+                // Add extra glow effect at the beam source - brighter in night mode
                 for (let i = 1; i <= 3; i++) {
-                    let glowAlpha = 30 / i;
+                    let glowAlpha = isNightMode ? 50 / i : 30 / i;
                     fill(255, 255, 200, glowAlpha);
+                    // Larger glow in night mode
+                    let glowSize = isNightMode ? 1.5 : 1;
                     ellipse(this.x - this.width/3, height/2 + this.height * 0.8, 
-                           this.width/3 * i, this.height/2 * i);
+                           this.width/3 * i * glowSize, this.height/2 * i * glowSize);
                     ellipse(this.x + this.width/3, height/2 + this.height * 0.8, 
-                           this.width/3 * i, this.height/2 * i);
+                           this.width/3 * i * glowSize, this.height/2 * i * glowSize);
                 }
                 
                 // Add taillights at the top
@@ -1063,36 +1135,63 @@
             
             show() {
                 // Main car body
-                fill(this.color);
-                stroke(255, 255, 255);
+                if (isNightMode) {
+                    // Use negative colors in night mode
+                    if (this.direction === 1) {
+                        fill(255, 105, 0); // Negative of blue
+                        stroke(0, 0, 0);
+                    } else {
+                        fill(0, 205, 155); // Negative of red
+                        stroke(0, 0, 0);
+                    }
+                } else {
+                    fill(this.color);
+                    stroke(255, 255, 255);
+                }
                 strokeWeight(2);
                 rect(this.x - this.width/2, this.y, this.width, this.height, 5);
                 
                 // Car details - adjust position based on direction
-                fill(this.detailColor);
+                if (isNightMode) {
+                    // Use negative colors in night mode
+                    if (this.direction === 1) {
+                        fill(155, 55, 0); // Negative of blue detail
+                    } else {
+                        fill(0, 155, 105); // Negative of red detail
+                    }
+                } else {
+                    fill(this.detailColor);
+                }
                 rect(this.x - this.width/4, this.y + (this.direction === 1 ? 0 : this.height * 2/3), 
                      this.width/2, this.height/2, 2);
                 
                 // Lights with night mode enhancement
                 if (this.direction === 1) {
                     // FLIPPED: For blue cars moving upward, headlights at the BOTTOM (front in direction of movement)
-                    // Headlights at the bottom of the car
-                    let headlightIntensity = 255; // Always full brightness
+                    // Headlights at the bottom of the car - brighter in night mode
+                    let headlightIntensity = isNightMode ? 255 : 255; // Always full brightness
                     fill(255, 255, headlightIntensity);
-                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/3);
-                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/3);
+                    
+                    // Make headlights larger in night mode
+                    let headlightSize = isNightMode ? this.height/2 : this.height/3;
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
                     
                     // Taillights at the top
                     fill(255, 50, 50, 255); // Always full brightness
                     ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
                     
-                    // Headlight beams for blue cars - always visible and pointing UPWARD from the bottom
+                    // Headlight beams for blue cars - brighter and longer in night mode
                     for (let i = 1; i <= 3; i++) {
                         noStroke();
-                        fill(255, 255, 200, 15 / i);
+                        // Brighter beams in night mode
+                        let beamAlpha = isNightMode ? 30 / i : 15 / i;
+                        fill(255, 255, 200, beamAlpha);
+                        
                         let beamWidth = this.width * (0.5 + i * 0.5);
-                        let beamHeight = this.height * (1 + i);
+                        // Longer beams in night mode
+                        let beamHeight = isNightMode ? this.height * (1.5 + i) : this.height * (1 + i);
                         
                         // Upward-pointing headlight beams from the bottom of the car
                         triangle(
@@ -1103,23 +1202,30 @@
                     }
                 } else {
                     // FLIPPED: For red cars moving downward, headlights at the TOP (front in direction of movement)
-                    // Headlights at the top of the car
-                    let headlightIntensity = 255; // Always full brightness
+                    // Headlights at the top of the car - brighter in night mode
+                    let headlightIntensity = isNightMode ? 255 : 255; // Always full brightness
                     fill(255, 255, headlightIntensity);
-                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/3);
-                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/3);
+                    
+                    // Make headlights larger in night mode
+                    let headlightSize = isNightMode ? this.height/2 : this.height/3;
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, headlightSize);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, headlightSize);
                     
                     // Taillights at the bottom
                     fill(255, 50, 50, 255); // Always full brightness
                     ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
                     
-                    // Headlight beams for red cars - always visible and pointing DOWNWARD from the top
+                    // Headlight beams for red cars - brighter and longer in night mode
                     for (let i = 1; i <= 3; i++) {
                         noStroke();
-                        fill(255, 255, 200, 15 / i);
+                        // Brighter beams in night mode
+                        let beamAlpha = isNightMode ? 30 / i : 15 / i;
+                        fill(255, 255, 200, beamAlpha);
+                        
                         let beamWidth = this.width * (0.5 + i * 0.5);
-                        let beamHeight = this.height * (1 + i);
+                        // Longer beams in night mode
+                        let beamHeight = isNightMode ? this.height * (1.5 + i) : this.height * (1 + i);
                         
                         // Downward-pointing headlight beams from the top of the car
                         triangle(
@@ -1175,7 +1281,7 @@
             combo = 0;
             maxCombo = 0;
             currentLevel = 1;
-            isNightMode = false;
+            isNightMode = false; // Level 1 is day (odd level)
             dayNightTransition = 0;
             lastLevelChange = millis();
             bgColor = { r: 0, g: 20, b: 40 };
