@@ -332,10 +332,9 @@
             {
                 title: "Game Objective",
                 content: `<ul class="bullet-list">
-                            <li class="bullet-point"><span class="bullet-icon">🛣️</span>Master six lanes of intense traffic</li>
                             <li class="bullet-point"><span class="bullet-icon">🔴</span>Red cars: Oncoming traffic in left lanes - High risk, high reward</li>
                             <li class="bullet-point"><span class="bullet-icon">🔵</span>Blue cars: Same direction in right lanes - Safer but fewer points</li>
-                            <li class="bullet-point"><span class="bullet-icon">💡</span>Watch for headlight beams - they show direction of movement</li>
+                            <li class="bullet-point"><span class="bullet-icon">🟢</span>Green cars appear after level 5 and change lanes</li>
                             <li class="bullet-point"><span class="bullet-icon">🔥</span>Chain dodges to build combo multipliers</li>
                          </ul>`
             },
@@ -469,15 +468,15 @@
 
         function handleLeft(e) {
             e.preventDefault();
-            if (gameState === "playing" && player.targetLane > 0) {
-                player.targetLane--;
+            if (gameState === "playing") {
+                player.moveLeft();
             }
         }
 
         function handleRight(e) {
             e.preventDefault();
-            if (gameState === "playing" && player.targetLane < 5) {
-                player.targetLane++;
+            if (gameState === "playing") {
+                player.moveRight();
             }
         }
 
@@ -539,7 +538,8 @@
         function draw() {
             background(0, 20, 40);
             
-            if (gameState === "rules") {
+            // Only draw rules if there's no popup visible
+            if (gameState === "rules" && !document.getElementById('rulesPopup')) {
                 drawRules();
             } else if (gameState === "menu") {
                 drawMenu();
@@ -562,142 +562,93 @@
             rect(0, 0, width, height);
             
             // Rules title
-            textSize(32);
+            textSize(width * 0.08);
             textAlign(CENTER, CENTER);
             
             // Use darker colors in night mode
             if (isNightMode) {
-                fill(0, 128, 128, 200); // Darker cyan with transparency
+                fill(0, 128, 128, 200);
             } else {
-                fill(0, 255, 255); // Cyan color for TRON theme
+                fill(0, 255, 255);
             }
             
-            text("HIGHWAY HAVOC - RULES", width/2, height/6);
+            text("HOW TO PLAY", width/2, height/6);
             
             // Rules content
-            textSize(18);
+            textSize(width * 0.04);
             textAlign(LEFT, TOP);
             let rulesText = [
-                "• Dodge traffic across 6 lanes of highway",
-                "• Change lanes with LEFT/RIGHT arrow keys",
-                "• Red cars (left lanes) are opposing traffic",
-                "• Blue cars (right lanes) are same-direction traffic",
-                "• Cars have headlights showing their direction of travel",
-                "• Stay in the same lane as a car to score points",
-                "• Chain multiple cars for combo multipliers",
-                "• Heart power-ups appear every 5 levels in the red lanes",
-                "• Collect hearts to gain an extra life",
-                "• Day/Night cycle alternates each level"
+                "• Use LEFT/RIGHT arrows to change lanes",
+                "• Red cars (left lanes) move down",
+                "• Blue cars (right lanes) move up",
+                "• Avoid collisions to survive",
+                "• Stay in lane with cars to score points",
+                "• Chain cars for combo multipliers",
+                "• Hearts appear every 5 levels"
             ];
             
-            let startY = height/4;
-            let lineHeight = 30;
+            let startY = height/3;
+            let lineHeight = height/15;
             
             for (let i = 0; i < rulesText.length; i++) {
                 text(rulesText[i], width/4, startY + i * lineHeight);
             }
             
             // Back button
-            textSize(24);
+            textSize(width * 0.05);
             textAlign(CENTER, CENTER);
-            text("Click anywhere to return", width/2, height * 0.85);
+            text("Click anywhere to return", width/2, height * 0.9);
         }
 
         function drawMenu() {
-            fill(0, 255, 255); // Cyan color for TRON theme
-            textSize(width * 0.08);
+            fill(0, 255, 255);
             textAlign(CENTER);
+            
+            // Title
+            textSize(width * 0.12);
             text("Highway Havoc", width/2, height/3);
-            textSize(width * 0.05);
+            
+            // Start instruction
+            textSize(width * 0.08);
             text("Press 'S' to Start", width/2, height/2);
-            textSize(width * 0.03);
-            text("Use ← → arrows to change lanes", width/2, height/2 + height * 0.1);
-            text("Headlights show the direction cars are moving", width/2, height/2 + height * 0.15);
-            textAlign(LEFT);
+            
+            // Controls
+            textSize(width * 0.05);
+            text("← → to change lanes", width/2, height/2 + height * 0.15);
+            text("Dodge or follow traffic to score", width/2, height/2 + height * 0.25);
         }
 
         function playGame() {
-            // Update day/night cycle
-            if (currentLevel > 0 && millis() - lastLevelChange > 1000) {
-                // Check if we need to update the day/night mode based on level
-                let shouldBeNightMode = currentLevel % 2 === 0;
-                
-                // Only trigger transition if the mode is changing
-                if (shouldBeNightMode !== isNightMode) {
-                    isNightMode = shouldBeNightMode;
-                    dayNightTransition = 255;
-                    lastLevelChange = millis();
-                    
-                    // Set target background colors
-                    if (isNightMode) {
-                        targetBgColor = { r: 0, g: 10, b: 20 }; // Darker version of day mode
-                    } else {
-                        targetBgColor = { r: 0, g: 20, b: 40 }; // Normal colors for day mode
-                    }
-                }
-            }
-            
-            // Smooth background color transition
-            bgColor.r = lerp(bgColor.r, targetBgColor.r, 0.05);
-            bgColor.g = lerp(bgColor.g, targetBgColor.g, 0.05);
-            bgColor.b = lerp(bgColor.b, targetBgColor.b, 0.05);
-            
             // Set background
-            background(bgColor.r, bgColor.g, bgColor.b);
+            background(0, 20, 40);
             
             // Draw lane indicators
             laneAnimOffset += 0.5;
             if (laneAnimOffset > height/20) laneAnimOffset = 0;
             
             for (let i = 0; i < 6; i++) {
-                // UPDATED: Now lanes 0-2 are red (opposing) and lanes 3-5 are blue (same direction)
                 if (i >= 3) {
                     // Blue lanes (same direction as player) - moving upward - RIGHT SIDE
-                    // Use darker colors in night mode
-                    if (isNightMode) {
-                        fill(0, 75, 128, 20); // Darker blue with lower opacity
-                    } else {
-                        fill(0, 150, 255, 30); // Normal blue
-                    }
+                    fill(0, 150, 255, 30); // Normal blue
                     // Draw upward arrows for same direction traffic
                     for (let y = -laneAnimOffset; y < height; y += height/20) {
-                        drawArrow(i * width/6 + width/12, y, 1, isNightMode);
+                        drawArrow(i * width/6 + width/12, y, -1);
                     }
                 } else {
                     // Red lanes (opposing traffic) - moving downward - LEFT SIDE
-                    // Use darker colors in night mode
-                    if (isNightMode) {
-                        fill(128, 25, 50, 20); // Darker red with lower opacity
-                    } else {
-                        fill(255, 50, 100, 30); // Normal red
-                    }
+                    fill(255, 50, 100, 30); // Normal red
                     // Draw downward arrows for oncoming traffic
                     for (let y = -laneAnimOffset; y < height; y += height/20) {
-                        drawArrow(i * width/6 + width/12, y, -1, isNightMode);
+                        drawArrow(i * width/6 + width/12, y, 1);
                     }
                 }
                 noStroke();
                 rect(i * width/6, 0, width/6, height);
                 
-                // Lane dividers with glow effect
-                let dividerColor = isNightMode ? color(0, 75, 128, 80) : color(0, 150, 255, 100);
-                stroke(dividerColor);
+                // Lane dividers
+                stroke(0, 150, 255, 100);
                 strokeWeight(2);
                 line((i+1) * width/6, 0, (i+1) * width/6, height);
-                
-                if (isNightMode) {
-                    // Add subtle glow to lane dividers
-                    strokeWeight(4);
-                    stroke(0, 75, 128, 15);
-                    line((i+1) * width/6, 0, (i+1) * width/6, height);
-                }
-            }
-            
-            // Day/night transition overlay
-            if (dayNightTransition > 0) {
-                fill(0, 0, 0, dayNightTransition);
-                rect(0, 0, width, height);
-                dayNightTransition -= 5;
             }
             
             // Update and display player
@@ -719,38 +670,60 @@
                 // Show heart notification
                 const heartNotif = document.createElement('div');
                 heartNotif.className = 'achievement';
-                heartNotif.innerHTML = `❤️ Extra Life Available!<br>Collect the heart in the left lanes!`;
-                heartNotif.style.top = '30%';
-                heartNotif.style.right = '50%';
+                heartNotif.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(255, 50, 50, 0.3);
+                    border: 2px solid rgba(255, 50, 50, 0.8);
+                    color: #fff;
+                    padding: 15px 30px;
+                    border-radius: 10px;
+                    font-size: 20px;
+                    text-align: center;
+                    animation: fadeInRight 0.3s ease-out;
+                    z-index: 1000;
+                `;
+                heartNotif.innerHTML = `❤️ Extra Life Available!`;
                 document.body.appendChild(heartNotif);
-                setTimeout(() => heartNotif.remove(), 3000);
+                setTimeout(() => {
+                    heartNotif.style.opacity = '0';
+                    heartNotif.style.transform = 'translateX(100px)';
+                    heartNotif.style.transition = 'all 0.3s ease-out';
+                    setTimeout(() => heartNotif.remove(), 2000);
+                }, 2000);
             }
             
             // Update and display heart power-up
-            if (heartPowerUp) {
-                heartPowerUp.update();
-                heartPowerUp.show();
+            if (heartPowerUp && heartPowerUp.hits(player)) {
+                lives++;
+                heartCollected = true;
+                heartPowerUp = null;
                 
-                // Check if player collected the heart
-                if (heartPowerUp.hits(player)) {
-                    lives++;
-                    heartCollected = true;
-                    heartPowerUp = null;
-                    
-                    // Show heart collected notification
-                    const heartCollectedNotif = document.createElement('div');
-                    heartCollectedNotif.className = 'achievement';
-                    heartCollectedNotif.innerHTML = `❤️ Extra Life Collected!<br>Lives: ${lives}`;
-                    heartCollectedNotif.style.top = '30%';
-                    heartCollectedNotif.style.right = '50%';
-                    document.body.appendChild(heartCollectedNotif);
-                    setTimeout(() => heartCollectedNotif.remove(), 2000);
-                }
-                
-                // Remove heart if it goes offscreen
-                if (heartPowerUp && heartPowerUp.offscreen()) {
-                    heartPowerUp = null;
-                }
+                const heartCollectedNotif = document.createElement('div');
+                heartCollectedNotif.className = 'achievement';
+                heartCollectedNotif.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(255, 50, 50, 0.3);
+                    border: 2px solid rgba(255, 50, 50, 0.8);
+                    color: #fff;
+                    padding: 15px 30px;
+                    border-radius: 10px;
+                    font-size: 20px;
+                    text-align: center;
+                    animation: fadeInRight 0.3s ease-out;
+                    z-index: 1000;
+                `;
+                heartCollectedNotif.innerHTML = `❤️ Extra Life Collected!`;
+                document.body.appendChild(heartCollectedNotif);
+                setTimeout(() => {
+                    heartCollectedNotif.style.opacity = '0';
+                    heartCollectedNotif.style.transform = 'translateX(100px)';
+                    heartCollectedNotif.style.transition = 'all 0.3s ease-out';
+                    setTimeout(() => heartCollectedNotif.remove(), 300);
+                }, 1500);
             }
             
             // Update and display cars
@@ -769,22 +742,46 @@
                     continue;
                 }
                 
-                if (!cars[i].scored && cars[i].y > height/2 && cars[i].lane === player.lane) {
-                    combo++;
-                    maxCombo = Math.max(maxCombo, combo);
-                    let comboPoints = (cars[i].direction === 1) ? 10 : 20;
-                    comboPoints *= (1 + combo * 0.1);
-                    score += Math.floor(comboPoints);
-                    cars[i].scored = true;
-                    
-                    if (combo > 1) {
-                        const elem = document.createElement('div');
-                        elem.className = 'achievement';
-                        elem.innerHTML = `${combo}x COMBO!`;
-                        elem.style.top = '50%';
-                        elem.style.right = '50%';
-                        document.body.appendChild(elem);
-                        setTimeout(() => elem.remove(), 1000);
+                // Scoring logic - check if car has passed the player without collision
+                // For blue cars (moving upward), check if they've moved above the player's center
+                // For red cars (moving downward), check if they've moved below the player's center
+                if (!cars[i].scored) {
+                    if ((cars[i].direction === -1 && cars[i].y < player.y && cars[i].lane === player.lane) ||
+                        (cars[i].direction === 1 && cars[i].y > player.y && cars[i].lane === player.lane)) {
+                        combo++;
+                        maxCombo = Math.max(maxCombo, combo);
+                        let comboPoints = (cars[i].direction === 1) ? 10 : 20;
+                        comboPoints *= (1 + combo * 0.1);
+                        score += Math.floor(comboPoints);
+                        cars[i].scored = true;
+                        
+                        if (combo > 1) {
+                            const elem = document.createElement('div');
+                            elem.className = 'achievement';
+                            elem.style.cssText = `
+                                position: fixed;
+                                bottom: 10%;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: rgba(0, 255, 255, 0.2);
+                                border: 2px solid rgba(0, 255, 255, 0.8);
+                                color: #fff;
+                                padding: 15px 30px;
+                                border-radius: 10px;
+                                font-size: 24px;
+                                text-align: center;
+                                animation: fadeInUp 0.3s ease-out;
+                                z-index: 1000;
+                            `;
+                            elem.innerHTML = `${combo}x COMBO!`;
+                            document.body.appendChild(elem);
+                            setTimeout(() => {
+                                elem.style.opacity = '0';
+                                elem.style.transform = 'translateX(-50%) translateY(-20px)';
+                                elem.style.transition = 'all 0.3s ease-out';
+                                setTimeout(() => elem.remove(), 300);
+                            }, 700);
+                        }
                     }
                 }
                 
@@ -796,38 +793,18 @@
             // Progressive difficulty
             if (millis() - lastCheckpointTime > 10000) {
                 // Level-based difficulty scaling with smoother transitions
-                // Levels 1-5: Increase speed, keep spawn rate constant
-                // Levels 6-10: Keep speed constant, increase spawn rate
-                // Repeat pattern every 10 levels
-                
-                // Determine which phase we're in (speed increase or density increase)
                 let levelGroup = Math.floor((currentLevel - 1) / 5);
-                let isSpeedPhase = levelGroup % 2 === 0; // Even groups (0, 2, 4...) focus on speed
-                let nextLevel = currentLevel + 1;
-                let isTransitionLevel = nextLevel % 5 === 1; // Level before phase change
+                let isSpeedPhase = levelGroup % 2 === 0;
+                let levelInPhase = (currentLevel - 1) % 5 + 1;
                 
-                // Calculate more balanced increases based on current level
-                let speedIncrease, spawnRateIncrease;
+                // Calculate and apply difficulty increases
+                let speedIncrease = isSpeedPhase ? (0.25 - (levelInPhase * 0.01)) : (0.05 + (levelInPhase * 0.005));
+                let spawnRateIncrease = isSpeedPhase ? (0.0005 + (levelInPhase * 0.0001)) : (0.002 + (levelInPhase * 0.0005));
                 
-                if (isSpeedPhase) {
-                    // Speed increase phase (levels 1-5, 11-15, 21-25, etc.)
-                    // More gradual speed increases that taper off
-                    let levelInPhase = (currentLevel - 1) % 5 + 1;
-                    speedIncrease = 0.25 - (levelInPhase * 0.01); // Slightly decreasing speed increases
-                    spawnRateIncrease = 0.0005 + (levelInPhase * 0.0001); // Slightly increasing spawn rate
-                } else {
-                    // Density increase phase (levels 6-10, 16-20, 26-30, etc.)
-                    // More gradual density increases that ramp up
-                    let levelInPhase = (currentLevel - 1) % 5 + 1;
-                    speedIncrease = 0.05 + (levelInPhase * 0.005); // Slightly increasing speed
-                    spawnRateIncrease = 0.002 + (levelInPhase * 0.0005); // Ramping up spawn rate
-                }
-                
-                // Apply increases
                 carSpeed += speedIncrease;
                 spawnRate += spawnRateIncrease;
                 
-                // Cap maximum values to prevent the game from becoming impossible
+                // Cap maximum values
                 carSpeed = Math.min(carSpeed, 12);
                 spawnRate = Math.min(spawnRate, 0.15);
                 
@@ -840,99 +817,70 @@
                     heartCollected = false;
                 }
                 
-                // Show level up message with phase information
-                const elem = document.createElement('div');
-                elem.className = 'achievement';
-                
-                // Determine if this is the start of a new phase or a transition to a new phase
-                let isNewPhase = currentLevel % 5 === 1;
-                
-                // Check if day/night mode should change
-                let shouldBeNightMode = currentLevel % 2 === 0;
-                let dayNightText = "";
-                
-                if (shouldBeNightMode !== isNightMode) {
-                    dayNightText = shouldBeNightMode ? "<br>Night Mode Activated!" : "<br>Day Mode Activated!";
-                }
-                
-                // Add heart notification for levels divisible by 5
-                let heartText = "";
+                // Only show message for heart power-up availability
                 if (currentLevel % 5 === 0) {
-                    heartText = "<br>❤️ Heart Power-up Available!";
+                    const heartNotif = document.createElement('div');
+                    heartNotif.className = 'achievement';
+                    heartNotif.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: rgba(255, 50, 50, 0.3);
+                        border: 2px solid rgba(255, 50, 50, 0.8);
+                        color: #fff;
+                        padding: 15px 30px;
+                        border-radius: 10px;
+                        font-size: 20px;
+                        text-align: center;
+                        animation: fadeInRight 0.3s ease-out;
+                        z-index: 1000;
+                    `;
+                    heartNotif.innerHTML = `❤️ Extra Life Available!`;
+                    document.body.appendChild(heartNotif);
+                    setTimeout(() => {
+                        heartNotif.style.opacity = '0';
+                        heartNotif.style.transform = 'translateX(100px)';
+                        heartNotif.style.transition = 'all 0.3s ease-out';
+                        setTimeout(() => heartNotif.remove(), 2000);
+                    }, 2000);
                 }
-                
-                if (isNewPhase) {
-                    // New phase announcement
-                    let phaseType = isSpeedPhase ? "Speed Phase" : "Density Phase";
-                    elem.innerHTML = `Level ${currentLevel}!<br>${phaseType} Begins!${dayNightText}${heartText}`;
-                    
-                    // Play a more noticeable transition effect
-                    dayNightTransition = 255; // Flash the screen
-                    
-                    // Show phase transition effect
-                    const phaseTransition = document.createElement('div');
-                    phaseTransition.className = 'achievement';
-                    phaseTransition.style.background = 'rgba(0, 255, 255, 0.3)';
-                    phaseTransition.style.border = '3px solid rgba(0, 255, 255, 0.9)';
-                    phaseTransition.style.padding = '20px';
-                    phaseTransition.style.fontSize = '1.2em';
-                    phaseTransition.innerHTML = `<strong>${phaseType}</strong><br>Difficulty Shifting!`;
-                    phaseTransition.style.top = '30%';
-                    phaseTransition.style.right = '50%';
-                    document.body.appendChild(phaseTransition);
-                    setTimeout(() => phaseTransition.remove(), 3000);
-                } else if (isTransitionLevel) {
-                    // Warning about upcoming phase change
-                    let nextPhaseType = isSpeedPhase ? "Density Phase" : "Speed Phase";
-                    elem.innerHTML = `Level ${currentLevel}!<br>Warning: ${nextPhaseType} Coming Soon!${dayNightText}${heartText}`;
-                } else {
-                    // Regular level up
-                    let phaseType = isSpeedPhase ? "Speed Increasing" : "Traffic Increasing";
-                    elem.innerHTML = `Level ${currentLevel}!<br>${phaseType}${dayNightText}${heartText}`;
-                }
-                
-                elem.style.top = '40%';
-                elem.style.right = '50%';
-                document.body.appendChild(elem);
-                setTimeout(() => elem.remove(), 2500);
             }
             
             // UI elements
             drawUI();
         }
 
-        function drawArrow(x, y, direction, isNight) {
-            let arrowSize = width/30;
-            let alpha = isNight ? 80 : 100;
+        function drawArrow(x, y, direction) {
+            let alpha = 100;
             
             if (direction === 1) {
-                if (isNight) {
-                    fill(0, 75, 128, alpha); // Darker blue
-                } else {
-                    fill(0, 150, 255, alpha); // Normal blue
-                }
+                // Downward arrow (red lanes)
+                fill(255, 50, 100, alpha); // Red in day mode
             } else {
-                if (isNight) {
-                    fill(128, 25, 50, alpha); // Darker red
-                } else {
-                    fill(255, 50, 100, alpha); // Normal red
-                }
+                // Upward arrow (blue lanes)
+                fill(0, 150, 255, alpha); // Blue in day mode
             }
             
+            let arrowSize = width/60;
+            
             beginShape();
-            vertex(x, y + direction * arrowSize/2);
-            vertex(x - arrowSize/4, y - direction * arrowSize/2);
-            vertex(x + arrowSize/4, y - direction * arrowSize/2);
+            if (direction === 1) {
+                // Downward pointing arrow
+                vertex(x, y + arrowSize);
+                vertex(x - arrowSize/2, y);
+                vertex(x + arrowSize/2, y);
+            } else {
+                // Upward pointing arrow
+                vertex(x, y - arrowSize);
+                vertex(x - arrowSize/2, y);
+                vertex(x + arrowSize/2, y);
+            }
             endShape(CLOSE);
         }
 
         function drawUI() {
             // Score and lives
-            if (isNightMode) {
-                fill(0, 128, 128, 200); // Darker cyan with transparency
-            } else {
-                fill(0, 255, 255);
-            }
+            fill(0, 255, 255);
             textSize(width * 0.04);
             text(`Score: ${score}`, width * 0.1, height * 0.05);
             
@@ -954,22 +902,12 @@
             text(`Level: ${currentLevel}`, width * 0.1, height * 0.2);
             
             // Progress bar
-            if (isNightMode) {
-                fill(0, 128, 128, 200); // Darker cyan with transparency
-                noFill();
-                stroke(0, 128, 128, 200);
-            } else {
-                fill(0, 255, 255);
-                noFill();
-                stroke(0, 255, 255);
-            }
+            fill(0, 255, 255);
+            noFill();
+            stroke(0, 255, 255);
             rect(width * 0.3, height * 0.02, width * 0.4, height * 0.02);
             
-            if (isNightMode) {
-                fill(0, 128, 128, 80); // Darker cyan with more transparency
-            } else {
-                fill(0, 255, 255, 100);
-            }
+            fill(0, 255, 255, 100);
             rect(width * 0.3, height * 0.02, map(millis() - lastCheckpointTime, 0, 10000, 0, width * 0.4), height * 0.02);
         }
 
@@ -991,156 +929,94 @@
 
         class Player {
             constructor() {
-                this.lane = 4; // Start in a blue lane (right side)
-                this.x = width/2;
-                this.width = width * 0.07;
-                this.height = height * 0.05;
-                this.targetLane = 4; // Start in a blue lane (right side)
-                this.glowSize = 0;
-                this.glowDir = 1;
+                this.lane = 3;
+                this.width = width/8;
+                this.height = height/15;
+                this.x = this.lane * width/6 + width/12;
+                this.y = height/2;
+                this.speed = 0;
+                this.maxSpeed = 5;
+                this.direction = -1;
+                this.invincible = false;
+                this.invincibleTimer = 0;
+                this.flashTimer = 0;
             }
             
             update() {
-                // Smooth movement to target lane
-                let targetX = this.targetLane * width/6 + width/12;
-                this.x = lerp(this.x, targetX, 0.2);
-                this.lane = this.targetLane;
+                // Calculate target X position based on lane
+                let targetX = this.lane * width/6 + width/12;
+                // Move toward target lane
+                let dx = targetX - this.x;
+                this.speed = constrain(dx * 0.2, -this.maxSpeed, this.maxSpeed);
+                this.x += this.speed;
                 
-                // Pulsating glow effect
-                this.glowSize += 0.2 * this.glowDir;
-                if (this.glowSize > 20) this.glowDir = -1;
-                if (this.glowSize < 5) this.glowDir = 1;
+                // Update invincibility
+                if (this.invincible) {
+                    this.invincibleTimer--;
+                    this.flashTimer++;
+                    if (this.invincibleTimer <= 0) {
+                        this.invincible = false;
+                    }
+                }
             }
             
             show() {
-                // Draw directional glow effect (extending upward)
+                // Glow effect
+                noStroke();
+                fill(255, 255, 0, 30); // Yellow glow
+                
                 for (let i = 5; i > 0; i--) {
-                    noStroke();
-                    // Use darker colors in night mode
-                    if (isNightMode) {
-                        fill(128, 128, 0, 80 / i); // Darker yellow with lower opacity
-                    } else {
-                        fill(255, 255, 0, 150 / i); // Normal yellow
-                    }
-                    
-                    // Oval glow that extends more upward than downward
-                    ellipse(
-                        this.x, 
-                        height/2 + this.height * 0.3, // Shifted upward
-                        this.width + this.glowSize * i, 
-                        this.height * 1.5 + this.glowSize * i
-                    );
-                    
-                    // Additional upward glow for motion effect
-                    if (i < 3) {
-                        beginShape();
-                        vertex(this.x - this.width/3, height/2);
-                        vertex(this.x + this.width/3, height/2);
-                        vertex(this.x + this.width/4, height/2 - this.height * i * 0.5);
-                        vertex(this.x - this.width/4, height/2 - this.height * i * 0.5);
-                        endShape(CLOSE);
-                    }
+                    ellipse(this.x, this.y, this.width + i*5, this.height + i*5);
                 }
                 
-                // Draw player car with headlights
-                if (isNightMode) {
-                    fill(128, 128, 0); // Darker yellow
-                    stroke(0, 0, 0);
-                } else {
-                    fill(255, 255, 0);
-                    stroke(255, 255, 255);
-                }
-                strokeWeight(2);
-                rect(this.x - this.width/2, height/2, this.width, this.height, 5);
+                // Car body
+                fill(255, 255, 0); // Yellow car
+                rect(this.x - this.width/2, this.y - this.height/2, this.width, this.height, 5);
                 
-                // Car details (windshield and roof)
-                if (isNightMode) {
-                    fill(100, 100, 0); // Darker yellow detail
-                } else {
-                    fill(200, 200, 0);
-                }
-                rect(this.x - this.width/4, height/2, this.width/2, this.height/2, 2);
+                // Headlights
+                fill(255, 255, 200);
+                let headlightSize = this.height/3;
                 
-                // FLIPPED: Headlights at the BOTTOM of the car (front for upward movement)
-                let headlightIntensity = 255; // Always full brightness
-                fill(255, 255, headlightIntensity);
+                // Headlights at the top of the car
+                ellipse(this.x - this.width/3, this.y - this.height/2, headlightSize, headlightSize);
+                ellipse(this.x + this.width/3, this.y - this.height/2, headlightSize, headlightSize);
                 
-                // Make headlights larger in night mode
-                let headlightSize = isNightMode ? this.height/2 : this.height/3;
+                // Taillights
+                fill(255, 0, 0, 200);
+                ellipse(this.x - this.width/3, this.y + this.height/2, this.height/4, this.height/4);
+                ellipse(this.x + this.width/3, this.y + this.height/2, this.height/4, this.height/4);
                 
-                // Draw headlights at the bottom of the car
-                ellipse(this.x - this.width/3, height/2 + this.height * 0.8, this.width/6, headlightSize);
-                ellipse(this.x + this.width/3, height/2 + this.height * 0.8, this.width/6, headlightSize);
-                
-                // Headlight beams pointing upward from the bottom - always visible
-                // Create gradient for headlight beams
-                for (let i = 1; i <= 5; i++) {
-                    noStroke();
-                    // Brighter beams in night mode
-                    let beamAlpha = isNightMode ? 40 / i : 40 / i;
-                    fill(255, 255, 200, beamAlpha);
+                // Headlight beams
+                for (let i = 1; i <= 8; i++) {
+                    let beamLength = this.height * (1.5 + i/2);
+                    let beamWidth = this.width/3 * (1 - i/12);
+                    fill(255, 255, 200, 50/i);
+                    ellipse(this.x - this.width/3, this.y - this.height/2 - beamLength/2, beamWidth, beamLength);
+                    ellipse(this.x + this.width/3, this.y - this.height/2 - beamLength/2, beamWidth, beamLength);
                     
-                    // Left headlight beam - longer and more conical
-                    let beamStartX = this.x - this.width/3;
-                    let beamStartY = height/2 + this.height * 0.8;
-                    // Longer beams in night mode
-                    let beamLength = isNightMode ? this.height * 8 : this.height * 6;
-                    let spreadFactor = 1.2; // How much the beam spreads
-                    
-                    // Left beam - now pointing upward from the bottom
-                    beginShape();
-                    vertex(beamStartX, beamStartY); // Beam start (at headlight)
-                    // Left edge of beam
-                    bezierVertex(
-                        beamStartX - this.width * 0.3 * i * spreadFactor, beamStartY + beamLength * 0.3,
-                        beamStartX - this.width * 0.4 * i * spreadFactor, beamStartY + beamLength * 0.6,
-                        beamStartX - this.width * 0.5 * i * spreadFactor, beamStartY + beamLength
-                    );
-                    // Right edge of beam
-                    bezierVertex(
-                        beamStartX + this.width * 0.2 * i * spreadFactor, beamStartY + beamLength * 0.6,
-                        beamStartX + this.width * 0.1 * i * spreadFactor, beamStartY + beamLength * 0.3,
-                        beamStartX, beamStartY
-                    );
-                    endShape(CLOSE);
-                    
-                    // Right beam
-                    beamStartX = this.x + this.width/3;
-                    beginShape();
-                    vertex(beamStartX, beamStartY);
-                    // Left edge of beam
-                    bezierVertex(
-                        beamStartX - this.width * 0.1 * i * spreadFactor, beamStartY + beamLength * 0.3,
-                        beamStartX - this.width * 0.2 * i * spreadFactor, beamStartY + beamLength * 0.6,
-                        beamStartX - this.width * 0.3 * i * spreadFactor, beamStartY + beamLength
-                    );
-                    // Right edge of beam
-                    bezierVertex(
-                        beamStartX + this.width * 0.5 * i * spreadFactor, beamStartY + beamLength * 0.6,
-                        beamStartX + this.width * 0.4 * i * spreadFactor, beamStartY + beamLength * 0.3,
-                        beamStartX, beamStartY
-                    );
-                    endShape(CLOSE);
+                    // Add glow at beam source
+                    fill(255, 255, 200, 90/i);
+                    ellipse(this.x - this.width/3, this.y - this.height/2, headlightSize + i*2, headlightSize + i*2);
+                    ellipse(this.x + this.width/3, this.y - this.height/2, headlightSize + i*2, headlightSize + i*2);
                 }
-                
-                // Add extra glow effect at the beam source - brighter in night mode
-                for (let i = 1; i <= 3; i++) {
-                    let glowAlpha = isNightMode ? 30 / i : 30 / i;
-                    fill(255, 255, 200, glowAlpha);
-                    // Larger glow in night mode
-                    let glowSize = isNightMode ? 1.5 : 1;
-                    ellipse(this.x - this.width/3, height/2 + this.height * 0.8, 
-                           this.width/3 * i * glowSize, this.height/2 * i * glowSize);
-                    ellipse(this.x + this.width/3, height/2 + this.height * 0.8, 
-                           this.width/3 * i * glowSize, this.height/2 * i * glowSize);
+            }
+            
+            moveLeft() {
+                if (this.lane > 0) {
+                    this.lane--;
                 }
-                
-                // Add taillights at the top
-                fill(255, 50, 50, 255);
-                ellipse(this.x - this.width/3, height/2 + this.height * 0.2, this.width/6, this.height/4);
-                ellipse(this.x + this.width/3, height/2 + this.height * 0.2, this.width/6, this.height/4);
-                
-                strokeWeight(1);
+            }
+            
+            moveRight() {
+                if (this.lane < 5) {
+                    this.lane++;
+                }
+            }
+            
+            makeInvincible(frames) {
+                this.invincible = true;
+                this.invincibleTimer = frames;
+                this.flashTimer = 0;
             }
         }
 
@@ -1149,11 +1025,29 @@
                 this.lane = lane;
                 this.width = width * 0.07;
                 this.height = height * 0.05;
-                // UPDATED: Now lanes 0-2 are red (opposing) and lanes 3-5 are blue (same direction)
-                this.direction = (lane < 3) ? -1 : 1;
+                // FLIPPED: Now lanes 0-2 are red (opposing) and lanes 3-5 are blue (same direction)
+                // Direction is flipped: blue cars move upward (-1), red cars move downward (1)
+                this.direction = (lane < 3) ? 1 : -1;
                 this.x = this.lane * width/6 + width/12;
-                this.y = (this.direction === 1) ? -this.height : height;
+                
+                // Position cars at the edges of the screen
+                if (this.direction === -1) {
+                    // Blue cars (moving upward) start at the bottom
+                    this.y = height + this.height;
+                } else {
+                    // Red cars (moving downward) start at the top
+                    this.y = -this.height;
+                }
+                
                 this.scored = false;
+                
+                // Green car properties (lane changers)
+                // Only introduce green cars after level 5
+                let greenCarChance = currentLevel > 5 ? Math.min(0.3, (currentLevel - 5) * 0.03) : 0;
+                this.isGreenCar = Math.random() < greenCarChance;
+                this.laneChangeTimer = 0;
+                this.laneChangeInterval = 60 + Math.floor(Math.random() * 60); // Frames between lane changes
+                this.targetLane = this.lane;
                 
                 // Adjust speed based on direction and current level
                 // Calculate level group and phase for consistent difficulty scaling
@@ -1163,7 +1057,7 @@
                 let isTransitionLevel = levelInPhase === 5; // Last level in a phase
                 
                 // Base multiplier depends on direction
-                let baseMultiplier = (this.direction === -1) ? 2.0 : 1.0;
+                let baseMultiplier = (this.direction === 1) ? 2.0 : 1.0;
                 
                 // Level-based scaling factor with smoother transitions
                 let levelScaling;
@@ -1192,7 +1086,7 @@
                 this.speed = carSpeed * baseMultiplier * (1 + levelScaling);
                 
                 // Apply direction-specific adjustments with better balance
-                if (this.direction === -1) {
+                if (this.direction === 1) {
                     // Opposing traffic (red cars) - always faster but with balanced scaling
                     this.speed *= 1.1;
                     
@@ -1203,8 +1097,16 @@
                     this.speed *= (0.97 + Math.random() * 0.06); // ±3% speed variation
                 }
                 
+                // Green cars move slightly slower to give player time to react to lane changes
+                if (this.isGreenCar) {
+                    this.speed *= 0.85;
+                }
+                
                 // UPDATED: Now lanes 0-2 are red and lanes 3-5 are blue
-                if (this.direction === 1) {
+                if (this.isGreenCar) {
+                    this.color = color(50, 200, 50);
+                    this.detailColor = color(100, 255, 100);
+                } else if (this.direction === -1) {
                     this.color = color(0, 150, 255);
                     this.detailColor = color(100, 200, 255);
                 } else {
@@ -1214,123 +1116,170 @@
             }
             
             update() {
+                // Handle lane changing for green cars
+                if (this.isGreenCar) {
+                    this.laneChangeTimer++;
+                    
+                    // Time to change lanes
+                    if (this.laneChangeTimer >= this.laneChangeInterval) {
+                        this.laneChangeTimer = 0;
+                        
+                        // Determine new lane
+                        let possibleLanes = [];
+                        
+                        // Can only change to adjacent lanes
+                        if (this.lane > 0) possibleLanes.push(this.lane - 1);
+                        if (this.lane < 5) possibleLanes.push(this.lane + 1);
+                        
+                        // Stay in the same direction lanes (red or blue)
+                        possibleLanes = possibleLanes.filter(l => {
+                            return (l < 3 && this.lane < 3) || (l >= 3 && this.lane >= 3);
+                        });
+                        
+                        if (possibleLanes.length > 0) {
+                            this.targetLane = possibleLanes[Math.floor(Math.random() * possibleLanes.length)];
+                        }
+                    }
+                    
+                    // Smooth lane transition
+                    if (this.lane !== this.targetLane) {
+                        let targetX = this.targetLane * width/6 + width/12;
+                        let currentX = this.x;
+                        this.x = lerp(currentX, targetX, 0.1);
+                        
+                        // If close enough to target, snap to it
+                        if (Math.abs(this.x - targetX) < 2) {
+                            this.x = targetX;
+                            this.lane = this.targetLane;
+                        }
+                    }
+                }
+                
                 this.y += this.speed * this.direction;
             }
             
             show() {
                 // Main car body
-                if (isNightMode) {
-                    // Use darker colors in night mode
-                    if (this.direction === 1) {
-                        fill(0, 75, 128); // Darker blue
-                        stroke(0, 0, 0);
-                    } else {
-                        fill(128, 25, 50); // Darker red
-                        stroke(0, 0, 0);
-                    }
+                if (this.isGreenCar) {
+                    fill(50, 200, 50);
+                    stroke(255, 255, 255);
+                } else if (this.direction === -1) {
+                    fill(0, 150, 255);
+                    stroke(255, 255, 255);
                 } else {
-                    fill(this.color);
+                    fill(255, 50, 100);
                     stroke(255, 255, 255);
                 }
                 strokeWeight(2);
                 rect(this.x - this.width/2, this.y, this.width, this.height, 5);
                 
-                // Car details - adjust position based on direction
-                if (isNightMode) {
-                    // Use darker colors in night mode
-                    if (this.direction === 1) {
-                        fill(0, 50, 100); // Darker blue detail
-                    } else {
-                        fill(100, 20, 40); // Darker red detail
-                    }
+                // Car details
+                if (this.isGreenCar) {
+                    fill(100, 255, 100);
+                } else if (this.direction === -1) {
+                    fill(100, 200, 255);
                 } else {
-                    fill(this.detailColor);
+                    fill(255, 100, 150);
                 }
-                rect(this.x - this.width/4, this.y + (this.direction === 1 ? 0 : this.height * 2/3), 
+                rect(this.x - this.width/4, this.y + (this.direction === -1 ? this.height * 2/3 : 0), 
                      this.width/2, this.height/2, 2);
                 
-                // Lights with night mode enhancement
-                if (this.direction === 1) {
-                    // FLIPPED: For blue cars moving upward, headlights at the BOTTOM (front in direction of movement)
-                    // Headlights at the bottom of the car - brighter in night mode
-                    let headlightIntensity = isNightMode ? 255 : 255; // Always full brightness
-                    fill(255, 255, headlightIntensity);
-                    
-                    // Make headlights larger in night mode
-                    let headlightSize = isNightMode ? this.height/2 : this.height/3;
-                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
-                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
-                    
-                    // Taillights at the top
-                    fill(255, 50, 50, 255); // Always full brightness
-                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
-                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
-                    
-                    // Headlight beams for blue cars - brighter and longer in night mode
-                    for (let i = 1; i <= 3; i++) {
-                        noStroke();
-                        // Brighter beams in night mode
-                        let beamAlpha = isNightMode ? 20 / i : 15 / i;
-                        fill(255, 255, 200, beamAlpha);
-                        
-                        let beamWidth = this.width * (0.5 + i * 0.5);
-                        // Longer beams in night mode
-                        let beamHeight = isNightMode ? this.height * (1.5 + i) : this.height * (1 + i);
-                        
-                        // Upward-pointing headlight beams from the bottom of the car
-                        triangle(
-                            this.x, this.y + this.height * 0.9,
-                            this.x - beamWidth/2, this.y + this.height + beamHeight,
-                            this.x + beamWidth/2, this.y + this.height + beamHeight
-                        );
-                    }
-                } else {
-                    // FLIPPED: For red cars moving downward, headlights at the TOP (front in direction of movement)
-                    // Headlights at the top of the car - brighter in night mode
-                    let headlightIntensity = isNightMode ? 255 : 255; // Always full brightness
-                    fill(255, 255, headlightIntensity);
-                    
-                    // Make headlights larger in night mode
-                    let headlightSize = isNightMode ? this.height/2 : this.height/3;
+                // Lights
+                if (this.direction === -1) {
+                    // Headlights for upward-moving cars
+                    fill(255, 255, 220);
+                    let headlightSize = this.height/3;
                     ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, headlightSize);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, headlightSize);
                     
-                    // Taillights at the bottom
-                    fill(255, 50, 50, 255); // Always full brightness
+                    // Taillights
+                    fill(255, 50, 50, 255);
                     ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
                     
-                    // Headlight beams for red cars - brighter and longer in night mode
+                    // Headlight beams
                     for (let i = 1; i <= 3; i++) {
                         noStroke();
-                        // Brighter beams in night mode
-                        let beamAlpha = isNightMode ? 20 / i : 15 / i;
-                        fill(255, 255, 200, beamAlpha);
+                        fill(255, 255, 200, 25/i);
+                        let beamWidth = this.width * (0.7 + i * 0.5);
+                        let beamHeight = this.height * (2 + i);
                         
-                        let beamWidth = this.width * (0.5 + i * 0.5);
-                        // Longer beams in night mode
-                        let beamHeight = isNightMode ? this.height * (1.5 + i) : this.height * (1 + i);
-                        
-                        // Downward-pointing headlight beams from the top of the car
                         triangle(
                             this.x, this.y + this.height * 0.1,
                             this.x - beamWidth/2, this.y - beamHeight,
                             this.x + beamWidth/2, this.y - beamHeight
                         );
                     }
+                } else {
+                    // Headlights for downward-moving cars
+                    fill(255, 255, 220);
+                    let headlightSize = this.height/3;
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
+                    
+                    // Taillights
+                    fill(255, 50, 50, 255);
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
+                    
+                    // Headlight beams
+                    for (let i = 1; i <= 3; i++) {
+                        noStroke();
+                        fill(255, 255, 200, 25/i);
+                        let beamWidth = this.width * (0.7 + i * 0.5);
+                        let beamHeight = this.height * (2 + i);
+                        
+                        triangle(
+                            this.x, this.y + this.height * 0.9,
+                            this.x - beamWidth/2, this.y + this.height + beamHeight,
+                            this.x + beamWidth/2, this.y + this.height + beamHeight
+                        );
+                    }
+                }
+                
+                // Add lane change indicator for green cars
+                if (this.isGreenCar && this.lane !== this.targetLane) {
+                    noStroke();
+                    fill(50, 255, 50, 200);
+                    
+                    let arrowDir = this.targetLane > this.lane ? 1 : -1;
+                    let arrowSize = this.width * 0.4;
+                    let arrowX = this.x + (arrowDir * this.width * 0.6);
+                    let arrowY = this.y + this.height * 0.5;
+                    
+                    triangle(
+                        arrowX, arrowY,
+                        arrowX - (arrowDir * arrowSize * 0.5), arrowY - arrowSize * 0.5,
+                        arrowX - (arrowDir * arrowSize * 0.5), arrowY + arrowSize * 0.5
+                    );
                 }
                 
                 strokeWeight(1);
             }
             
             hits(player) {
-                return (this.lane === player.lane && 
-                        this.y + this.height > height/2 && 
-                        this.y < height/2 + player.height);
+                // Check if car and player are in the same lane
+                if (this.lane !== player.lane) return false;
+                
+                // Calculate vertical overlap
+                let carTop = this.y;
+                let carBottom = this.y + this.height;
+                let playerTop = player.y - player.height/2;
+                let playerBottom = player.y + player.height/2;
+                
+                // Check for collision
+                return (carBottom > playerTop && carTop < playerBottom);
             }
             
             offscreen() {
-                return (this.y > height || this.y + this.height < 0);
+                // Check if cars have moved completely off screen
+                if (this.direction === 1) {
+                    // Red cars moving down
+                    return this.y > height + this.height;
+                } else {
+                    // Blue cars moving up
+                    return this.y < -this.height;
+                }
             }
         }
 
@@ -1341,7 +1290,7 @@
                 this.width = width * 0.05;
                 this.height = width * 0.05;
                 this.x = this.lane * width/6 + width/12;
-                this.y = -this.height;
+                this.y = -this.height; // Start above the screen
                 this.speed = carSpeed * 0.7; // Move slower than cars
                 this.collected = false;
                 this.pulseAmount = 0;
@@ -1349,7 +1298,7 @@
             }
             
             update() {
-                // Move downward
+                // Move downward (same as red cars)
                 this.y += this.speed;
                 
                 // Pulsating effect
@@ -1364,7 +1313,7 @@
                 
                 // Glowing effect
                 for (let i = 3; i > 0; i--) {
-                    if (isNightMode) {
+                    if (this.isGreenCar) {
                         fill(255, 50, 50, 100 / i); // Red in night mode too
                     } else {
                         fill(255, 50, 50, 100 / i); // Red heart
@@ -1376,7 +1325,7 @@
                 }
                 
                 // Main heart
-                if (isNightMode) {
+                if (this.isGreenCar) {
                     fill(255, 50, 50); // Keep heart red even in night mode
                 } else {
                     fill(255, 50, 50);
@@ -1385,13 +1334,21 @@
             }
             
             hits(player) {
-                return (this.lane === player.lane && 
-                        this.y + this.height > height/2 && 
-                        this.y < height/2 + player.height);
+                // Check if heart and player are in the same lane
+                if (this.lane !== player.lane) return false;
+                
+                // Calculate vertical overlap
+                let heartTop = this.y - this.height/2;
+                let heartBottom = this.y + this.height/2;
+                let playerTop = player.y - player.height/2;
+                let playerBottom = player.y + player.height/2;
+                
+                // Check for collision
+                return (heartBottom > playerTop && heartTop < playerBottom);
             }
             
             offscreen() {
-                return (this.y > height);
+                return (this.y > height + this.height); // Check if heart has moved completely off screen
             }
         }
         
@@ -1407,20 +1364,20 @@
         }
 
         function keyPressed() {
+            if (gameState === "playing") {
+                if (keyCode === LEFT_ARROW) {
+                    player.moveLeft();
+                }
+                if (keyCode === RIGHT_ARROW) {
+                    player.moveRight();
+                }
+            }
+            
             if (key === 's' && (gameState === "menu" || gameState === "rules")) {
                 startGame();
             }
             if (key === 'r' && gameState === "gameover") {
                 resetGame();
-            }
-            
-            if (gameState === "playing") {
-                if (keyCode === LEFT_ARROW && player.targetLane > 0) {
-                    player.targetLane--;
-                }
-                if (keyCode === RIGHT_ARROW && player.targetLane < 5) {
-                    player.targetLane++;
-                }
             }
         }
 
@@ -1437,21 +1394,7 @@
             lastCheckpointTime = millis();
             gameState = "playing";
             player = new Player();
-            
-            // Reset day/night cycle
-            isNightMode = currentLevel % 2 === 0; // Even levels are night mode
-            dayNightTransition = 0;
-            lastLevelChange = millis();
             laneAnimOffset = 0;
-            
-            // Set background colors based on day/night mode
-            if (isNightMode) {
-                bgColor = { r: 0, g: 10, b: 20 }; // Darker version of day mode
-                targetBgColor = { r: 0, g: 10, b: 20 };
-            } else {
-                bgColor = { r: 0, g: 20, b: 40 }; // Normal colors for day mode
-                targetBgColor = { r: 0, g: 20, b: 40 };
-            }
             
             // Reset heart power-up variables
             heartPowerUp = null;
