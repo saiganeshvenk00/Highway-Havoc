@@ -383,6 +383,12 @@
 
             const phase = INSTRUCTION_PHASES[currentPhase - 1];
 
+            // Create the buttons HTML based on the current phase
+            const buttonsHTML = currentPhase === 4 ? 
+                `<button class="rulesButton" onclick="resetInstructions()">Replay Instructions</button>
+                 <button class="rulesButton" onclick="startGame()">Start Game</button>` :
+                `<button class="rulesButton" onclick="nextPhase()">Next</button>`;
+
             popup.innerHTML = `
                 <h1 class="rulesTitle">${phase.title}</h1>
                 <div class="rulesContent">${phase.content}</div>
@@ -392,12 +398,7 @@
                     ).join('')}
                 </div>
                 <div class="rulesButtons">
-                    ${currentPhase === 4 ? `
-                        <button class="rulesButton" onclick="startGame()">Start Game</button>
-                        <button class="rulesButton" onclick="resetInstructions()">Replay Instructions</button>
-                    ` : `
-                        <button class="rulesButton" onclick="nextPhase()">Next</button>
-                    `}
+                    ${buttonsHTML}
                 </div>
             `;
 
@@ -1057,7 +1058,15 @@
                 let isTransitionLevel = levelInPhase === 5; // Last level in a phase
                 
                 // Base multiplier depends on direction
-                let baseMultiplier = (this.direction === 1) ? 2.0 : 1.0;
+                // Reduced initial red car speed by 40% (0.6 instead of 2.0)
+                let baseMultiplier = (this.direction === 1) ? 0.6 : 1.0;
+                
+                // Gradually increase red car speed multiplier based on level
+                if (this.direction === 1) {
+                    // For red cars, increase speed gradually up to original speed by level 10
+                    let speedIncrease = Math.min(1.4, (currentLevel - 1) * 0.14); // 0.14 per level, max 1.4 increase
+                    baseMultiplier += speedIncrease;
+                }
                 
                 // Level-based scaling factor with smoother transitions
                 let levelScaling;
@@ -1087,10 +1096,7 @@
                 
                 // Apply direction-specific adjustments with better balance
                 if (this.direction === 1) {
-                    // Opposing traffic (red cars) - always faster but with balanced scaling
-                    this.speed *= 1.1;
-                    
-                    // Add slight randomization to make gameplay less predictable but still fair
+                    // Opposing traffic (red cars) - add slight randomization
                     this.speed *= (0.95 + Math.random() * 0.1); // ±5% speed variation
                 } else {
                     // Same-direction traffic (blue cars) - add slight randomization
