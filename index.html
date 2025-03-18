@@ -764,21 +764,21 @@
                                 bottom: 10%;
                                 left: 50%;
                                 transform: translateX(-50%);
-                                background: rgba(0, 255, 255, 0.2);
-                                border: 2px solid rgba(0, 255, 255, 0.8);
+                                background: rgba(0, 255, 255, 0.15);
+                                border: 1px solid rgba(0, 255, 255, 0.6);
                                 color: #fff;
-                                padding: 15px 30px;
-                                border-radius: 10px;
-                                font-size: 24px;
+                                padding: 8px 20px;
+                                border-radius: 8px;
+                                font-size: 18px;
                                 text-align: center;
                                 animation: fadeInUp 0.3s ease-out;
                                 z-index: 1000;
                             `;
-                            elem.innerHTML = `${combo}x COMBO!`;
+                            elem.innerHTML = `${combo}x`;
                             document.body.appendChild(elem);
                             setTimeout(() => {
                                 elem.style.opacity = '0';
-                                elem.style.transform = 'translateX(-50%) translateY(-20px)';
+                                elem.style.transform = 'translateX(-50%) translateY(-10px)';
                                 elem.style.transition = 'all 0.3s ease-out';
                                 setTimeout(() => elem.remove(), 300);
                             }, 700);
