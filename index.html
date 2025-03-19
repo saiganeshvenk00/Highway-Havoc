@@ -64,18 +64,18 @@
             z-index: 1000;
         }
         .rulesPopup {
-            position: fixed;
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0, 20, 40, 0.95);
             border: 3px solid rgba(0, 255, 255, 0.8);
             border-radius: 15px;
-            padding: 20px;
-            width: 40%;
-            max-width: 300px;
-            height: 60vh;
-            max-height: 450px;
+            padding: 25px;
+            width: 80%;
+            max-width: min(600px, 80%);
+            height: 80%;
+            max-height: min(600px, 80%);
             overflow-y: auto;
             z-index: 1000;
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
@@ -88,20 +88,20 @@
         .rulesTitle {
             color: #00ffff;
             text-align: center;
-            font-size: 1.5em;
-            margin-bottom: 20px;
+            font-size: 2.2em;
+            margin-bottom: 30px;
             text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-            padding-bottom: 10px;
+            padding-bottom: 15px;
             border-bottom: 2px solid rgba(0, 255, 255, 0.3);
             width: 100%;
         }
         .rulesContent {
             color: #fff;
-            font-size: 1em;
-            line-height: 1.5;
+            font-size: 1.3em;
+            line-height: 1.6;
             text-align: left;
-            margin: 15px 0;
-            padding: 0 15px;
+            margin: 20px 0;
+            padding: 0 20px;
             opacity: 0;
             transform: translateY(20px);
             animation: fadeInUp 0.5s forwards;
@@ -113,13 +113,13 @@
         .bullet-list {
             list-style: none;
             padding: 0;
-            margin: 10px 0;
+            margin: 15px 0;
         }
         .bullet-point {
             position: relative;
-            padding-left: 25px;
-            margin: 8px 0;
-            font-size: 0.95em;
+            padding-left: 35px;
+            margin: 12px 0;
+            font-size: 1.2em;
             display: flex;
             align-items: center;
         }
@@ -127,8 +127,8 @@
             content: '';
             position: absolute;
             left: 0;
-            width: 8px;
-            height: 8px;
+            width: 12px;
+            height: 12px;
             background: rgba(0, 255, 255, 0.8);
             border-radius: 50%;
             margin-top: 1px;
@@ -149,8 +149,8 @@
         }
         .bullet-icon {
             display: inline-block;
-            margin-right: 8px;
-            font-size: 1.1em;
+            margin-right: 12px;
+            font-size: 1.4em;
             text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
         @keyframes fadeInUp {
@@ -181,15 +181,16 @@
             width: 100%;
         }
         .rulesButton {
-            padding: 8px 20px;
-            font-size: 1em;
+            padding: 12px 30px;
+            font-size: 1.3em;
             background: rgba(0, 255, 255, 0.2);
             border: 2px solid #00ffff;
             color: #00ffff;
-            border-radius: 20px;
+            border-radius: 25px;
             cursor: pointer;
             transition: all 0.3s ease;
             width: 100%;
+            margin: 8px 0;
         }
         .rulesButton:hover {
             background: rgba(0, 255, 255, 0.4);
@@ -236,33 +237,37 @@
         }
         @media (max-height: 600px) {
             .rulesPopup {
-                height: 70vh;
-                padding: 15px;
-                max-height: 400px;
+                height: 90%;
+                padding: 20px;
+                width: 90%;
             }
             .rulesTitle {
-                font-size: 1.3em;
-                margin-bottom: 10px;
+                font-size: 1.8em;
+                margin-bottom: 15px;
             }
             .rulesContent {
-                font-size: 0.9em;
-                margin: 8px 0;
+                font-size: 1.1em;
+                margin: 10px 0;
             }
             .rulesButton {
-                padding: 6px 15px;
+                padding: 8px 20px;
+                font-size: 1.1em;
             }
         }
         @media (max-width: 480px) {
             .rulesPopup {
-                width: 75%;
+                width: 90%;
                 padding: 15px;
             }
-            .phase-indicator {
-                right: 8px;
+            .rulesTitle {
+                font-size: 1.6em;
             }
-            .phase-dot {
-                width: 6px;
-                height: 6px;
+            .rulesContent {
+                font-size: 1em;
+            }
+            .bullet-point {
+                font-size: 1.1em;
+                padding-left: 30px;
             }
         }
     </style>
@@ -760,28 +765,29 @@
                             const elem = document.createElement('div');
                             elem.className = 'achievement';
                             elem.style.cssText = `
-                                position: fixed;
-                                bottom: 8%;
+                                position: absolute;
+                                bottom: 15%;
                                 left: 50%;
                                 transform: translateX(-50%);
-                                background: rgba(0, 255, 255, 0.15);
-                                border: 1px solid rgba(0, 255, 255, 0.6);
-                                color: #fff;
-                                padding: 8px 20px;
-                                border-radius: 8px;
-                                font-size: 18px;
+                                background: rgba(0, 255, 255, 0.1);
+                                border: 1px solid rgba(0, 255, 255, 0.4);
+                                color: rgba(255, 255, 255, 0.8);
+                                padding: 4px 12px;
+                                border-radius: 4px;
+                                font-size: 14px;
                                 text-align: center;
-                                animation: fadeInUp 0.3s ease-out;
+                                animation: fadeInUp 0.2s ease-out;
                                 z-index: 1000;
+                                letter-spacing: 1px;
                             `;
-                            elem.innerHTML = `${combo}x COMBO!`;
+                            elem.innerHTML = `${combo}x`;
                             document.body.appendChild(elem);
                             setTimeout(() => {
                                 elem.style.opacity = '0';
-                                elem.style.transform = 'translateX(-50%) translateY(-15px)';
-                                elem.style.transition = 'all 0.3s ease-out';
-                                setTimeout(() => elem.remove(), 300);
-                            }, 700);
+                                elem.style.transform = 'translateX(-50%) translateY(-8px)';
+                                elem.style.transition = 'all 0.2s ease-out';
+                                setTimeout(() => elem.remove(), 200);
+                            }, 500);
                         }
                     }
                 }
@@ -1371,10 +1377,10 @@
 
         function keyPressed() {
             if (gameState === "playing") {
-                if (keyCode === LEFT_ARROW) {
+                if (keyCode === LEFT_ARROW || key.toLowerCase() === 'a') {
                     player.moveLeft();
                 }
-                if (keyCode === RIGHT_ARROW) {
+                if (keyCode === RIGHT_ARROW || key.toLowerCase() === 'd') {
                     player.moveRight();
                 }
             }
