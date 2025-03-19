@@ -754,14 +754,14 @@
                         let comboPoints = (cars[i].direction === 1) ? 10 : 20;
                         comboPoints *= (1 + combo * 0.1);
                         score += Math.floor(comboPoints);
-                        cars[i].scored = true;
+                    cars[i].scored = true;
                         
                         if (combo > 1) {
                             const elem = document.createElement('div');
                             elem.className = 'achievement';
                             elem.style.cssText = `
                                 position: fixed;
-                                bottom: 10%;
+                                bottom: 8%;
                                 left: 50%;
                                 transform: translateX(-50%);
                                 background: rgba(0, 255, 255, 0.15);
@@ -774,11 +774,11 @@
                                 animation: fadeInUp 0.3s ease-out;
                                 z-index: 1000;
                             `;
-                            elem.innerHTML = `${combo}x`;
+                            elem.innerHTML = `${combo}x COMBO!`;
                             document.body.appendChild(elem);
                             setTimeout(() => {
                                 elem.style.opacity = '0';
-                                elem.style.transform = 'translateX(-50%) translateY(-10px)';
+                                elem.style.transform = 'translateX(-50%) translateY(-15px)';
                                 elem.style.transition = 'all 0.3s ease-out';
                                 setTimeout(() => elem.remove(), 300);
                             }, 700);
@@ -931,8 +931,8 @@
         class Player {
             constructor() {
                 this.lane = 3;
-                this.width = width/8;
-                this.height = height/15;
+                this.width = width/10;
+                this.height = height/18;
                 this.x = this.lane * width/6 + width/12;
                 this.y = height/2;
                 this.speed = 0;
