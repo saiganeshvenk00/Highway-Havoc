@@ -22,27 +22,40 @@
         #mobileControls {
             position: fixed;
             bottom: 20px;
-            width: 100%;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            justify-content: space-around;
+            gap: 10px;
             z-index: 100;
+            width: auto;
+            justify-content: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
         }
         .mobileBtn {
-            background-color: rgba(0, 255, 255, 0.3);
-            border: 2px solid rgba(0, 255, 255, 0.8);
+            background-color: rgba(0, 255, 255, 0.2);
+            border: 2px solid rgba(0, 255, 255, 0.6);
             color: #fff;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 24px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 28px;
             touch-action: manipulation;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             z-index: 1000;
             position: relative;
+            min-width: 80px;
+            text-align: center;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        .mobileBtn:active, .mobileBtn:hover {
-            background-color: rgba(0, 255, 255, 0.6);
-            transform: scale(1.1);
+        .mobileBtn:active {
+            background-color: rgba(0, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        .mobileBtn:hover {
+            background-color: rgba(0, 255, 255, 0.3);
         }
         #gameButtons {
             position: fixed;
@@ -434,17 +447,28 @@
             let canvas = createCanvas(canvasWidth, canvasHeight);
             canvas.parent(document.body);
             
+            // Set frame rate based on device
+            if (isMobile()) {
+                frameRate(30); // Lower frame rate for mobile
+                // Reduce initial number of particles and effects for mobile
+                carSpeed = carSpeed * 2; // Compensate for lower frame rate
+                spawnRate = spawnRate * 2; // Compensate for lower frame rate
+            } else {
+                frameRate(60); // Full frame rate for desktop
+            }
+            
             player = new Player();
             
-            // Setup controls
+            // Setup controls with passive listeners for better mobile performance
             const leftBtn = document.getElementById('leftBtn');
             const rightBtn = document.getElementById('rightBtn');
             const startBtn = document.getElementById('startBtn');
             const restartBtn = document.getElementById('restartBtn');
             
-            leftBtn.addEventListener('touchstart', handleLeft);
+            // Use passive event listeners for better mobile performance
+            leftBtn.addEventListener('touchstart', handleLeft, { passive: true });
             leftBtn.addEventListener('mousedown', handleLeft);
-            rightBtn.addEventListener('touchstart', handleRight);
+            rightBtn.addEventListener('touchstart', handleRight, { passive: true });
             rightBtn.addEventListener('mousedown', handleRight);
             startBtn.addEventListener('click', () => {
                 if (gameState === "rules") {
@@ -624,46 +648,111 @@
             text("Dodge or follow traffic to score", width/2, height/2 + height * 0.25);
         }
 
+        // Optimize car updates by using object pooling
+        let carPool = [];
+        
+        function getCarFromPool(lane) {
+            let car = carPool.pop();
+            if (car) {
+                car.reset(lane);
+                return car;
+            }
+            return new Car(lane);
+        }
+
+        function returnCarToPool(car) {
+            if (carPool.length < 20) { // Limit pool size
+                carPool.push(car);
+            }
+        }
+
         function playGame() {
             // Set background
             background(0, 20, 40);
             
             // Draw lane indicators
-            laneAnimOffset += 0.5;
+            laneAnimOffset += isMobile() ? 1 : 0.5; // Faster animation on mobile to match lower frame rate
             if (laneAnimOffset > height/20) laneAnimOffset = 0;
             
-            for (let i = 0; i < 6; i++) {
-                if (i >= 3) {
-                    // Blue lanes (same direction as player) - moving upward - RIGHT SIDE
-                    fill(0, 150, 255, 30); // Normal blue
-                    // Draw upward arrows for same direction traffic
-                    for (let y = -laneAnimOffset; y < height; y += height/20) {
-                        drawArrow(i * width/6 + width/12, y, -1);
+            // Optimize lane drawing for mobile
+            if (isMobile()) {
+                // Simplified lane drawing for mobile
+                for (let i = 0; i < 6; i++) {
+                    if (i >= 3) {
+                        fill(0, 150, 255, 30);
+                        for (let y = -laneAnimOffset; y < height; y += height/10) {
+                            drawArrow(i * width/6 + width/12, y, -1);
+                        }
+                    } else {
+                        fill(255, 50, 100, 30);
+                        for (let y = -laneAnimOffset; y < height; y += height/10) {
+                            drawArrow(i * width/6 + width/12, y, 1);
+                        }
                     }
-                } else {
-                    // Red lanes (opposing traffic) - moving downward - LEFT SIDE
-                    fill(255, 50, 100, 30); // Normal red
-                    // Draw downward arrows for oncoming traffic
-                    for (let y = -laneAnimOffset; y < height; y += height/20) {
-                        drawArrow(i * width/6 + width/12, y, 1);
-                    }
+                    noStroke();
+                    rect(i * width/6, 0, width/6, height);
                 }
-                noStroke();
-                rect(i * width/6, 0, width/6, height);
-                
-                // Lane dividers
-                stroke(0, 150, 255, 100);
-                strokeWeight(2);
-                line((i+1) * width/6, 0, (i+1) * width/6, height);
+            } else {
+                // Original lane drawing for desktop
+                for (let i = 0; i < 6; i++) {
+                    if (i >= 3) {
+                        fill(0, 150, 255, 30);
+                        for (let y = -laneAnimOffset; y < height; y += height/20) {
+                            drawArrow(i * width/6 + width/12, y, -1);
+                        }
+                    } else {
+                        fill(255, 50, 100, 30);
+                        for (let y = -laneAnimOffset; y < height; y += height/20) {
+                            drawArrow(i * width/6 + width/12, y, 1);
+                        }
+                    }
+                    noStroke();
+                    rect(i * width/6, 0, width/6, height);
+                }
             }
             
             // Update and display player
             player.update();
             player.show();
             
-            // Spawn and update cars
+            // Spawn and update cars using object pooling
             if (random() < spawnRate) {
-                cars.push(new Car(floor(random(6))));
+                cars.push(getCarFromPool(floor(random(6))));
+            }
+            
+            // Batch process cars
+            for (let i = cars.length - 1; i >= 0; i--) {
+                cars[i].update();
+                cars[i].show();
+                
+                if (cars[i].hits(player)) {
+                    lives--;
+                    combo = 0;
+                    returnCarToPool(cars[i]);
+                    cars.splice(i, 1);
+                    flashAlpha = 100;
+                    if (lives <= 0) {
+                        gameState = "gameover";
+                    }
+                    continue;
+                }
+                
+                if (!cars[i].scored) {
+                    if ((cars[i].direction === -1 && cars[i].y < player.y && cars[i].lane === player.lane) ||
+                        (cars[i].direction === 1 && cars[i].y > player.y && cars[i].lane === player.lane)) {
+                        combo++;
+                        maxCombo = Math.max(maxCombo, combo);
+                        let comboPoints = (cars[i].direction === 1) ? 10 : 20;
+                        comboPoints *= (1 + combo * 0.1);
+                        score += Math.floor(comboPoints);
+                        cars[i].scored = true;
+                    }
+                }
+                
+                if (cars[i].offscreen()) {
+                    returnCarToPool(cars[i]);
+                    cars.splice(i, 1);
+                }
             }
             
             // Handle heart power-up (every 5 levels)
@@ -701,99 +790,44 @@
             }
             
             // Update and display heart power-up
-            if (heartPowerUp && heartPowerUp.hits(player)) {
-                lives++;
-                heartCollected = true;
-                heartPowerUp = null;
+            if (heartPowerUp) {
+                heartPowerUp.update();
+                heartPowerUp.show();
                 
-                const heartCollectedNotif = document.createElement('div');
-                heartCollectedNotif.className = 'achievement';
-                heartCollectedNotif.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: rgba(255, 50, 50, 0.3);
-                    border: 2px solid rgba(255, 50, 50, 0.8);
-                    color: #fff;
-                    padding: 15px 30px;
-                    border-radius: 10px;
-                    font-size: 20px;
-                    text-align: center;
-                    animation: fadeInRight 0.3s ease-out;
-                    z-index: 1000;
-                `;
-                heartCollectedNotif.innerHTML = `❤️ Extra Life Collected!`;
-                document.body.appendChild(heartCollectedNotif);
-                setTimeout(() => {
-                    heartCollectedNotif.style.opacity = '0';
-                    heartCollectedNotif.style.transform = 'translateX(100px)';
-                    heartCollectedNotif.style.transition = 'all 0.3s ease-out';
-                    setTimeout(() => heartCollectedNotif.remove(), 300);
-                }, 1500);
-            }
-            
-            // Update and display cars
-            for (let i = cars.length - 1; i >= 0; i--) {
-                cars[i].update();
-                cars[i].show();
-                
-                if (cars[i].hits(player)) {
-                    lives--;
-                    combo = 0;
-                    cars.splice(i, 1);
-                    flashAlpha = 100;
-                    if (lives <= 0) {
-                        gameState = "gameover";
-                    }
-                    continue;
+                if (heartPowerUp.hits(player)) {
+                    lives++;
+                    heartCollected = true;
+                    heartPowerUp = null;
+                    
+                    const heartCollectedNotif = document.createElement('div');
+                    heartCollectedNotif.className = 'achievement';
+                    heartCollectedNotif.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: rgba(255, 50, 50, 0.3);
+                        border: 2px solid rgba(255, 50, 50, 0.8);
+                        color: #fff;
+                        padding: 15px 30px;
+                        border-radius: 10px;
+                        font-size: 20px;
+                        text-align: center;
+                        animation: fadeInRight 0.3s ease-out;
+                        z-index: 1000;
+                    `;
+                    heartCollectedNotif.innerHTML = `❤️ Extra Life Collected!`;
+                    document.body.appendChild(heartCollectedNotif);
+                    setTimeout(() => {
+                        heartCollectedNotif.style.opacity = '0';
+                        heartCollectedNotif.style.transform = 'translateX(100px)';
+                        heartCollectedNotif.style.transition = 'all 0.3s ease-out';
+                        setTimeout(() => heartCollectedNotif.remove(), 300);
+                    }, 1500);
                 }
                 
-                // Scoring logic - check if car has passed the player without collision
-                // For blue cars (moving upward), check if they've moved above the player's center
-                // For red cars (moving downward), check if they've moved below the player's center
-                if (!cars[i].scored) {
-                    if ((cars[i].direction === -1 && cars[i].y < player.y && cars[i].lane === player.lane) ||
-                        (cars[i].direction === 1 && cars[i].y > player.y && cars[i].lane === player.lane)) {
-                        combo++;
-                        maxCombo = Math.max(maxCombo, combo);
-                        let comboPoints = (cars[i].direction === 1) ? 10 : 20;
-                        comboPoints *= (1 + combo * 0.1);
-                        score += Math.floor(comboPoints);
-                    cars[i].scored = true;
-                        
-                        if (combo > 1) {
-                            const elem = document.createElement('div');
-                            elem.className = 'achievement';
-                            elem.style.cssText = `
-                                position: absolute;
-                                bottom: 15%;
-                                left: 50%;
-                                transform: translateX(-50%);
-                                background: rgba(0, 255, 255, 0.1);
-                                border: 1px solid rgba(0, 255, 255, 0.4);
-                                color: rgba(255, 255, 255, 0.8);
-                                padding: 4px 12px;
-                                border-radius: 4px;
-                                font-size: 14px;
-                                text-align: center;
-                                animation: fadeInUp 0.2s ease-out;
-                                z-index: 1000;
-                                letter-spacing: 1px;
-                            `;
-                            elem.innerHTML = `${combo}x`;
-                            document.body.appendChild(elem);
-                            setTimeout(() => {
-                                elem.style.opacity = '0';
-                                elem.style.transform = 'translateX(-50%) translateY(-8px)';
-                                elem.style.transition = 'all 0.2s ease-out';
-                                setTimeout(() => elem.remove(), 200);
-                            }, 500);
-                        }
-                    }
-                }
-                
-                if (cars[i].offscreen()) {
-                    cars.splice(i, 1);
+                if (heartPowerUp && heartPowerUp.offscreen()) {
+                    heartPowerUp = null;
+                    heartSpawned = false;
                 }
             }
             
@@ -1028,93 +1062,59 @@
         }
 
         class Car {
-            constructor(lane) {
+            reset(lane) {
                 this.lane = lane;
                 this.width = width * 0.07;
                 this.height = height * 0.05;
-                // FLIPPED: Now lanes 0-2 are red (opposing) and lanes 3-5 are blue (same direction)
-                // Direction is flipped: blue cars move upward (-1), red cars move downward (1)
                 this.direction = (lane < 3) ? 1 : -1;
                 this.x = this.lane * width/6 + width/12;
                 
-                // Position cars at the edges of the screen
                 if (this.direction === -1) {
-                    // Blue cars (moving upward) start at the bottom
                     this.y = height + this.height;
                 } else {
-                    // Red cars (moving downward) start at the top
                     this.y = -this.height;
                 }
                 
                 this.scored = false;
                 
-                // Green car properties (lane changers)
-                // Only introduce green cars after level 5
                 let greenCarChance = currentLevel > 5 ? Math.min(0.3, (currentLevel - 5) * 0.03) : 0;
                 this.isGreenCar = Math.random() < greenCarChance;
                 this.laneChangeTimer = 0;
-                this.laneChangeInterval = 60 + Math.floor(Math.random() * 60); // Frames between lane changes
+                this.laneChangeInterval = 60 + Math.floor(Math.random() * 60);
                 this.targetLane = this.lane;
                 
-                // Adjust speed based on direction and current level
-                // Calculate level group and phase for consistent difficulty scaling
                 let levelGroup = Math.floor((currentLevel - 1) / 5);
-                let isSpeedPhase = levelGroup % 2 === 0; // Even groups (0, 2, 4...) focus on speed
+                let isSpeedPhase = levelGroup % 2 === 0;
                 let levelInPhase = (currentLevel - 1) % 5 + 1;
-                let isTransitionLevel = levelInPhase === 5; // Last level in a phase
+                let isTransitionLevel = levelInPhase === 5;
                 
-                // Base multiplier depends on direction
-                // Reduced initial red car speed by 40% (0.6 instead of 2.0)
                 let baseMultiplier = (this.direction === 1) ? 0.6 : 1.0;
                 
-                // Gradually increase red car speed multiplier based on level
                 if (this.direction === 1) {
-                    // For red cars, increase speed gradually up to original speed by level 10
-                    let speedIncrease = Math.min(1.4, (currentLevel - 1) * 0.14); // 0.14 per level, max 1.4 increase
+                    let speedIncrease = Math.min(1.4, (currentLevel - 1) * 0.14);
                     baseMultiplier += speedIncrease;
                 }
                 
-                // Level-based scaling factor with smoother transitions
-                let levelScaling;
+                let levelScaling = isSpeedPhase ? 
+                    (0.05 + Math.min(0.35, levelInPhase * 0.07)) : 
+                    (0.05 + Math.min(0.15, levelInPhase * 0.03));
                 
-                if (isSpeedPhase) {
-                    // During speed phases, scale more with level but with diminishing returns
-                    levelScaling = 0.05 + Math.min(0.35, levelInPhase * 0.07);
-                } else {
-                    // During density phases, scale minimally with level but still increase
-                    levelScaling = 0.05 + Math.min(0.15, levelInPhase * 0.03);
-                }
-                
-                // Apply transition smoothing - reduce speed jump between phases
                 if (isTransitionLevel) {
-                    // If we're at the last level of a phase, start transitioning to next phase
-                    if (isSpeedPhase) {
-                        // Transitioning from speed to density - reduce speed scaling slightly
-                        levelScaling *= 0.9;
-                    } else {
-                        // Transitioning from density to speed - increase speed scaling slightly
-                        levelScaling *= 1.1;
-                    }
+                    levelScaling *= isSpeedPhase ? 0.9 : 1.1;
                 }
                 
-                // Calculate final speed with more balanced scaling
                 this.speed = carSpeed * baseMultiplier * (1 + levelScaling);
                 
-                // Apply direction-specific adjustments with better balance
                 if (this.direction === 1) {
-                    // Opposing traffic (red cars) - add slight randomization
-                    this.speed *= (0.95 + Math.random() * 0.1); // ±5% speed variation
+                    this.speed *= (0.95 + Math.random() * 0.1);
                 } else {
-                    // Same-direction traffic (blue cars) - add slight randomization
-                    this.speed *= (0.97 + Math.random() * 0.06); // ±3% speed variation
+                    this.speed *= (0.97 + Math.random() * 0.06);
                 }
                 
-                // Green cars move slightly slower to give player time to react to lane changes
                 if (this.isGreenCar) {
                     this.speed *= 0.85;
                 }
                 
-                // UPDATED: Now lanes 0-2 are red and lanes 3-5 are blue
                 if (this.isGreenCar) {
                     this.color = color(50, 200, 50);
                     this.detailColor = color(100, 255, 100);
@@ -1127,23 +1127,22 @@
                 }
             }
             
+            constructor(lane) {
+                this.reset(lane);
+            }
+            
             update() {
-                // Handle lane changing for green cars
                 if (this.isGreenCar) {
                     this.laneChangeTimer++;
                     
-                    // Time to change lanes
                     if (this.laneChangeTimer >= this.laneChangeInterval) {
                         this.laneChangeTimer = 0;
                         
-                        // Determine new lane
                         let possibleLanes = [];
                         
-                        // Can only change to adjacent lanes
                         if (this.lane > 0) possibleLanes.push(this.lane - 1);
                         if (this.lane < 5) possibleLanes.push(this.lane + 1);
                         
-                        // Stay in the same direction lanes (red or blue)
                         possibleLanes = possibleLanes.filter(l => {
                             return (l < 3 && this.lane < 3) || (l >= 3 && this.lane >= 3);
                         });
@@ -1153,13 +1152,11 @@
                         }
                     }
                     
-                    // Smooth lane transition
                     if (this.lane !== this.targetLane) {
                         let targetX = this.targetLane * width/6 + width/12;
                         let currentX = this.x;
                         this.x = lerp(currentX, targetX, 0.1);
                         
-                        // If close enough to target, snap to it
                         if (Math.abs(this.x - targetX) < 2) {
                             this.x = targetX;
                             this.lane = this.targetLane;
@@ -1171,7 +1168,6 @@
             }
             
             show() {
-                // Main car body
                 if (this.isGreenCar) {
                     fill(50, 200, 50);
                     stroke(255, 255, 255);
@@ -1185,7 +1181,6 @@
                 strokeWeight(2);
                 rect(this.x - this.width/2, this.y, this.width, this.height, 5);
                 
-                // Car details
                 if (this.isGreenCar) {
                     fill(100, 255, 100);
                 } else if (this.direction === -1) {
@@ -1196,20 +1191,16 @@
                 rect(this.x - this.width/4, this.y + (this.direction === -1 ? this.height * 2/3 : 0), 
                      this.width/2, this.height/2, 2);
                 
-                // Lights
                 if (this.direction === -1) {
-                    // Headlights for upward-moving cars
                     fill(255, 255, 220);
                     let headlightSize = this.height/3;
                     ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, headlightSize);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, headlightSize);
                     
-                    // Taillights
                     fill(255, 50, 50, 255);
                     ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
                     
-                    // Headlight beams
                     for (let i = 1; i <= 3; i++) {
                         noStroke();
                         fill(255, 255, 200, 25/i);
@@ -1223,18 +1214,15 @@
                         );
                     }
                 } else {
-                    // Headlights for downward-moving cars
                     fill(255, 255, 220);
                     let headlightSize = this.height/3;
                     ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
                     
-                    // Taillights
                     fill(255, 50, 50, 255);
                     ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
                     ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
                     
-                    // Headlight beams
                     for (let i = 1; i <= 3; i++) {
                         noStroke();
                         fill(255, 255, 200, 25/i);
@@ -1249,7 +1237,6 @@
                     }
                 }
                 
-                // Add lane change indicator for green cars
                 if (this.isGreenCar && this.lane !== this.targetLane) {
                     noStroke();
                     fill(50, 255, 50, 200);
@@ -1270,26 +1257,20 @@
             }
             
             hits(player) {
-                // Check if car and player are in the same lane
                 if (this.lane !== player.lane) return false;
                 
-                // Calculate vertical overlap
                 let carTop = this.y;
                 let carBottom = this.y + this.height;
                 let playerTop = player.y - player.height/2;
                 let playerBottom = player.y + player.height/2;
                 
-                // Check for collision
                 return (carBottom > playerTop && carTop < playerBottom);
             }
             
             offscreen() {
-                // Check if cars have moved completely off screen
                 if (this.direction === 1) {
-                    // Red cars moving down
                     return this.y > height + this.height;
                 } else {
-                    // Blue cars moving up
                     return this.y < -this.height;
                 }
             }
@@ -1297,48 +1278,41 @@
 
         class Heart {
             constructor(lane) {
-                // Only spawn on red lanes (0-2)
                 this.lane = lane;
                 this.width = width * 0.05;
                 this.height = width * 0.05;
                 this.x = this.lane * width/6 + width/12;
-                this.y = -this.height; // Start above the screen
-                this.speed = carSpeed * 0.7; // Move slower than cars
+                this.y = -this.height;
+                this.speed = carSpeed * 0.7;
                 this.collected = false;
                 this.pulseAmount = 0;
                 this.pulseDir = 1;
             }
             
             update() {
-                // Move downward (same as red cars)
                 this.y += this.speed;
                 
-                // Pulsating effect
                 this.pulseAmount += 0.05 * this.pulseDir;
                 if (this.pulseAmount > 1.5) this.pulseDir = -1;
                 if (this.pulseAmount < 0.5) this.pulseDir = 1;
             }
             
             show() {
-                // Draw heart with pulsating effect
                 noStroke();
                 
-                // Glowing effect
                 for (let i = 3; i > 0; i--) {
                     if (this.isGreenCar) {
-                        fill(255, 50, 50, 100 / i); // Red in night mode too
+                        fill(255, 50, 50, 100 / i);
                     } else {
-                        fill(255, 50, 50, 100 / i); // Red heart
+                        fill(255, 50, 50, 100 / i);
                     }
                     
-                    // Heart shape with pulsating size
                     let size = this.width * (1 + this.pulseAmount * 0.2 * i);
                     heartShape(this.x, this.y, size);
                 }
                 
-                // Main heart
                 if (this.isGreenCar) {
-                    fill(255, 50, 50); // Keep heart red even in night mode
+                    fill(255, 50, 50);
                 } else {
                     fill(255, 50, 50);
                 }
@@ -1346,27 +1320,23 @@
             }
             
             hits(player) {
-                // Check if heart and player are in the same lane
                 if (this.lane !== player.lane) return false;
                 
-                // Calculate vertical overlap
                 let heartTop = this.y - this.height/2;
                 let heartBottom = this.y + this.height/2;
                 let playerTop = player.y - player.height/2;
                 let playerBottom = player.y + player.height/2;
                 
-                // Check for collision
                 return (heartBottom > playerTop && heartTop < playerBottom);
             }
             
             offscreen() {
-                return (this.y > height + this.height); // Check if heart has moved completely off screen
+                return (this.y > height + this.height);
             }
         }
         
         function heartShape(x, y, size) {
             beginShape();
-            // Heart shape using bezier curves
             vertex(x, y + size * 0.3);
             bezierVertex(x, y, x - size/2, y - size/4, x - size/2, y - size/2);
             bezierVertex(x - size/2, y - size * 0.8, x, y - size * 0.7, x, y - size * 0.3);
@@ -1394,7 +1364,6 @@
         }
 
         function resetGame() {
-            // Reset game variables
             score = 0;
             lives = 3;
             combo = 0;
@@ -1408,18 +1377,15 @@
             player = new Player();
             laneAnimOffset = 0;
             
-            // Reset heart power-up variables
             heartPowerUp = null;
             heartSpawned = false;
             heartCollected = false;
             
-            // Update button visibility
             const startBtn = document.getElementById('startBtn');
             const restartBtn = document.getElementById('restartBtn');
             startBtn.style.display = 'none';
             restartBtn.style.display = 'block';
             
-            // Show starting message
             const elem = document.createElement('div');
             elem.className = 'achievement';
             elem.innerHTML = `Game Start!<br>Level ${currentLevel}`;
